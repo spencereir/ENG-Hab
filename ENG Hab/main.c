@@ -24,12 +24,12 @@ typedef struct  {
 } module;
 
 module rad;             //Radiation Shields
-module rcon;
-module reactor;
-module fcell;
-module prbatt;
-module sbatt;
-module agrav;
+module rcon;            //Reactor Containment
+module reactor;         //Habitat Reactor
+module fcell;           //Fuel Cell
+module prbatt;          //Primary battery
+module sbatt;           //Secondary Battery
+module agrav;           //Anti-Gravity
 
 BITMAP *background;
 BITMAP *buffer;
@@ -38,9 +38,12 @@ BITMAP *wireDecon;      //Bitmap of disconnected wire
 
 int radPC = 0;         //Percentage of the radshields a and b
 int ticks = 0;
+int amps[4] = {0};     //Holds the amount of amps for each bus (0 = Primary, 1 = Secondary, 3 = Tertiary, 4 = AYSE)
+int volts[4] = {0};    //"     "   "      "  volts "  "    "   "  " "        "  "           " " "         " " "
+
 int wires[20] = {0};   //Array that holds the value of every wire (one meaning connected)
-int wirex[20] = {234, 302};
-int wirey[20] = {85, 85};
+int wirex[20] = {234, 302, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 270, 418, 418};                   //Where the wires should show up on the x/y coords
+int wirey[20] = {85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 85, 137, 137, 180};
 int i, j;
 int keyPress, oldKeyPress;
 
@@ -86,8 +89,42 @@ void update() {
      if(rad.temp >= 120) rad.status = 2;
      if(key[KEY_RIGHT] && radPC < 100) radPC++;
      else if(key[KEY_LEFT] && radPC > 0) radPC--;      
-     else if(keyPressed(KEY_A)) wires[0] = inv(wires[0]);    
-     else if(keyPressed(KEY_B)) wires[1] = inv(wires[1]);       
+     //Only invert wire positions if the key is being pressed without shift held (Lowercase)
+     /*
+     Unfortunately, the wire array doesn't follow a nice and neat pattern, so here is a list
+     of how each system corresponds to it's wire value.
+     0/A/Rad shield 1
+     1/B/Rad Shield 2
+     2/D/RCON 1
+     3/E/RCON 2
+     
+     */
+     else if(keyPressed(KEY_A) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_B) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);     
+     else if(keyPressed(KEY_C) && !(key_shifts & KB_SHIFT_FLAG)) wires[4] = inv(wires[4]);    
+     else if(keyPressed(KEY_D) && !(key_shifts & KB_SHIFT_FLAG)) wires[2] = inv(wires[2]);
+     else if(keyPressed(KEY_E) && !(key_shifts & KB_SHIFT_FLAG)) wires[3] = inv(wires[3]);    
+     else if(keyPressed(KEY_F) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_G) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_H) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_I) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_J) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);  
+     else if(keyPressed(KEY_K) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_L) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);     
+     else if(keyPressed(KEY_M) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_N) && !(key_shifts & KB_SHIFT_FLAG)) wires[15] = inv(wires[15]);
+     else if(keyPressed(KEY_O) && !(key_shifts & KB_SHIFT_FLAG)) wires[14] = inv(wires[14]);    
+     else if(keyPressed(KEY_P) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_Q) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_R) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_S) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_T) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]); 
+     else if(keyPressed(KEY_U) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);     
+     else if(keyPressed(KEY_V) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_W) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_X) && !(key_shifts & KB_SHIFT_FLAG)) wires[0] = inv(wires[0]);    
+     else if(keyPressed(KEY_Y) && !(key_shifts & KB_SHIFT_FLAG)) wires[1] = inv(wires[1]);
+     else if(keyPressed(KEY_Z) && !(key_shifts & KB_SHIFT_FLAG)) wires[13] = inv(wires[13]);    
 }
 
 void draw() {
