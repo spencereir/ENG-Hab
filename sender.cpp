@@ -1,19 +1,19 @@
 #include "globals.cpp"
 
-int sender(const char *message, PCSTR target, PCSTR portNum)
+int sender(const char *message)
 {
+  int numbytes;
   int sockfd;
   struct addrinfo hints, *servinfo, *p;
   int rv;
-  int numbytes;
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_DGRAM;
 
-  if ((rv = getaddrinfo(target, portNum, &hints, &servinfo)) != 0) {
-    std::cout << "Error: Could not connect to target " << target << " on port " << portNum << "." << std::endl;
+  if (getaddrinfo(SERVER_COMPUTER, PORT, &hints, &servinfo) != 0) {
+    std::cout << "Error: Could not connect to target " << SERVER_COMPUTER << " on port " << PORT << "." << std::endl;
   }
-  //std::cout << servinfo << std::endl;
+  assert(servinfo != NULL);
   sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
   for(p = servinfo; p != NULL; p = p->ai_next) {
     if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
@@ -22,16 +22,11 @@ int sender(const char *message, PCSTR target, PCSTR portNum)
     }
     break;
   }
-
-  if (p == NULL) {
-        std::cout << "Error: Could not bind to socket" << std::endl;
-  }													
+  assert(p != NULL);								
   if ((numbytes = sendto(sockfd, message, strlen(message), 0, p->ai_addr, p->ai_addrlen)) == -1) {
         std::cout << "Error: Message not sent." << std::endl;
   }
-  if(message == "quit") exit(1);
-  std::cout << std::endl;
   freeaddrinfo(servinfo);
-  shutdown(sockfd,2);
+  closesocket(sockfd);
   return 0;
 }
