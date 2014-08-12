@@ -301,7 +301,7 @@ int main() {
       }
       //TODO: Optimise this statement a LOT. Find a way to record what values are changing, then make one big string, and send all the data at the same time. Multiple small strings will kill speed, one big one can be sent easy.
       //TODO: Investigate whether or not doing port bindings at the beginning of the code and just passing ports to the sender function can speed up the process
-      sender(sString.c_str());
+      sender(sString.c_str(), sockfd, p);
       system("cls");
       bus[0].display();
     }
