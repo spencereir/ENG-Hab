@@ -120,7 +120,7 @@ class Bus {
     void power() {
       switch(busNum) {
         case 0:
-          if((modules[findByName("Habitat Reactor")].powered && modules[findByName("Habitat Reactor")].wire) || ((modules[findByName("Fuel Cell")].powered && modules[findByName("Fuel Cell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
+          if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
             powered = true;       
             volts = 10000;
             amps = 2500;                   
@@ -132,7 +132,7 @@ class Bus {
           }
           break;
         case 1:
-          if(((modules[findByName("Habitat Reactor")].powered && modules[findByName("Habitat Reactor")].wire) && true/*see above*/) || (modules[findByName("Fuel Cell")].powered && modules[findByName("Fuel Cell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
+          if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
             powered = true;
             volts = 120;
             amps = 25;                          
@@ -148,7 +148,7 @@ class Bus {
     void display() {
       line();
       string stats = "BUS ";
-      stats += static_cast<ostringstream*>(&(ostringstream() << (busNum + 1)))->str();
+      stats += to_string(busNum + 1);
       stats += " STATISTICS";
       int width = (80 - stats.length()) / 2;
       for(int i = 0; i < width; i++) cout << " ";
@@ -178,12 +178,36 @@ int main() {
   WSADATA wsaData;
   if (WSAStartup(MAKEWORD(2,2), &wsaData) != 0) {
     std::cout << "Error: Could not start WSA" << std::endl;
-	system("pause");
+    system("pause");
   }
+
+  int sockfd;
+  struct addrinfo hints, *servinfo, *p;
+  int rv;
+  int numbytes;
+  memset(&hints, 0, sizeof hints);
+  hints.ai_family = AF_UNSPEC;
+  hints.ai_socktype = SOCK_DGRAM;
+
+  if (getaddrinfo(SERVER_COMPUTER, PORT, &hints, &servinfo) != 0) {
+    std::cout << "Error: Could not connect to target " << SERVER_COMPUTER << " on port " << PORT << "." << std::endl;
+  }
+  assert(servinfo != NULL);
+  sockfd = socket(servinfo->ai_family, servinfo->ai_socktype, servinfo->ai_protocol);
+  for(p = servinfo; p != NULL; p = p->ai_next) {
+    if ((sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1) {
+      cout << "Error: Could not intialize socket" << endl;
+      continue;
+    }
+    break;
+  }
+  
+  char hostName[128];
+  gethostname(hostName, sizeof hostName);
   thread listenerThread (listenerFunction);
   //Initialize all local variables
   char in = ' ';                                               //Holds user input
-  dTime = 1000;                                                   //How many milliseconds between updates?
+  dTime = 100;                                                   //How many milliseconds between updates?
   
   //Initialize the Key Input map
   keyMap['z'] = 0;
@@ -265,11 +289,19 @@ int main() {
   }
   GetLocalTime(&t);
   time1 = t.wMilliseconds + (t.wSecond * 1000);
-  sender("1;ArtificialGravity-temp~20", "HAL-9000", PORT);
   do {
     in = getInput();
     bool change = update(in);
     if(change) {
+      string sString = (static_cast<std::string>(hostName) + ";1|" + ENG_MC_COMPUTER + ":" + to_string(modules.size() * 3) + ";");
+      for(int i = 0; i < modules.size(); i++) {
+        sString += modules[i].truncName + "-temp~" + to_string(modules[i].temp) + ";";
+        sString += modules[i].truncName + "-wire~" + to_string(modules[i].wire) + ";";
+	sString += modules[i].truncName + "-status~" + to_string(modules[i].status) + ";";
+      }
+      //TODO: Optimise this statement a LOT. Find a way to record what values are changing, then make one big string, and send all the data at the same time. Multiple small strings will kill speed, one big one can be sent easy.
+      //TODO: Investigate whether or not doing port bindings at the beginning of the code and just passing ports to the sender function can speed up the process
+      sender(sString.c_str());
       system("cls");
       bus[0].display();
     }
@@ -297,8 +329,8 @@ bool update(char keyIn) {
     change = true;
   }
   if(keyIn == 'x') {                                                  //Put here key inputs not specific to a module
-    if(modules[findByName("Habitat Reactor")].temp >= 80) {
-      modules[findByName("Habitat Reactor")].powered = true;
+    if(modules[findByName("HabitatReactor")].temp >= 80) {
+      modules[findByName("HabitatReactor")].powered = true;
       change = true;
     }
   }
@@ -370,7 +402,6 @@ void line() {
   cout << setfill(' '); 
 }
 void lineParser(string pLine) {
-	//Data should look like this "4;hab-vtan~3;vcen~10;refVO~9;fuel~100"
   vector<string> data = split(pLine, ';');
   for(int i = 1; i < atoi(data[0].c_str()) + 1; i++) {
     vector<string> subData = split(data[i], '-');
@@ -388,6 +419,7 @@ void listenerFunction() {
 	}
   } while(!finished);
 }
+
 void modify(string name, string mod, string val) {
   int id = findByName(name);
   if(mod == "temp") {
@@ -396,7 +428,11 @@ void modify(string name, string mod, string val) {
   else if(mod == "status") {
     modules[id].status = static_cast<statuses>(atoi(val.c_str()));
   }
+  else if(mod == "wire") {
+    modules[id].wire = atoi(val.c_str());
+  }
 }
+
 
 vector<string> &split(const string &s, char delim, vector<string> &elems) {
     stringstream ss(s);
