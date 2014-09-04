@@ -207,44 +207,43 @@ class Bus {
 		int busNum;
 		int source;
 		float watts;
-       		void power() {
-      			switch(busNum) {
-        			case 0:
-								if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
-									powered = true;       
-									watts = PRIMARY_BUS_WATTS;
-									if(modules[findByName("HabitatReactor")].powered) source = 0;
-									else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
-									else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons. just accept my logic							
-								}
-								else powered = false;
-								break;
-							case 1:
-								if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
-										powered = true;
-										watts = SECONDARY_BUS_WATTS;         
-								}       					//Add source to this...?    
-								else powered = false;
-								break;   
-						}
-       		}
-    		
-    		void display() {
-					string stats = "BUS ";
-					stats += to_string(busNum + 1);
-					stats += " STATISTICS";
-					int width = (80 - stats.length()) / 2;
-					for(int i = 0; i < width; i++) cout << " ";
-					cout << stats << endl;
-					if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
-					cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
-					cout << "POWER SOURCE INFO:" << endl;
-					modules[source].display();
-					for(int i = 3; i < modules.size(); i++) {
-						if(modules[i].busNum == busNum) modules[i].display();                     
-						else break;
+		void power() {
+			switch(busNum) {
+				case 0:
+					if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
+						powered = true;       
+						watts = PRIMARY_BUS_WATTS;
+						if(modules[findByName("HabitatReactor")].powered) source = 0;
+						else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
+						else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons. just accept my logic							
 					}
-				}
+					else powered = false;
+					break;
+				case 1:
+					if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
+						powered = true;
+						watts = SECONDARY_BUS_WATTS;         
+					}       					//Add source to this...?    
+					else powered = false;
+					break;   
+			}
+		}
+    		
+		void display() {
+			string stats = "BUS ";
+			stats += to_string(busNum + 1);
+			stats += " STATISTICS";
+			int width = (80 - stats.length()) / 2;
+			for(int i = 0; i < width; i++) cout << " ";
+			cout << stats << endl;
+			if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
+			cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl << "POWER SOURCE INFO: " << endl;
+			modules[source].display();
+			for(int i = 3; i < modules.size(); i++) {
+				if(modules[i].busNum == busNum) modules[i].display();                     
+				else break;
+			}
+		}
 };
 
 vector<Bus> bus(3);
