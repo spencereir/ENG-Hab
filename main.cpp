@@ -121,39 +121,39 @@ CHANGELOG
 #include <iomanip>				//Formatting outstream
 #include <map>					//Maps to handle keyboard input
 #include <conio.h>				//Keyboard I/O (kbhit)
-#include <Windows.h>			//Systemtime functions
+#include <Windows.h>				//Systemtime functions
 #include <vector>				//Vectors > Arrays
 #include <SQLAPI.h>				//Database I/O
 
-#pragma comment(lib, "sqlapi.lib")		//Lets get SQLty
+#pragma comment(lib, "sqlapi.lib")		//Link to the SQL API
 
 #define NUM_MODULES 18
 #define NUM_BUSES 3
 #define PRIMARY_BUS_WATTS 2500000
 #define SECONDARY_BUS_WATTS 10000
-#define PRIMARY_HEAT_RATIO 100000				//Bigger this is = Smaller increments in which heat goes up
-#define PRIMARY_COOLING_BASELINE 1			//Bigger this is = Larger temperature reductions every tick (1 tick = dTime milliseconds, assigned in the main function)
+#define PRIMARY_HEAT_RATIO 100000		//Bigger this is = Smaller increments in which heat goes up
+#define PRIMARY_COOLING_BASELINE 1		//Bigger this is = Larger temperature reductions every tick (1 tick = dTime milliseconds, assigned in the main function)
 #define SECONDARY_HEAT_RATIO 50000
 #define SECONDARY_COOLING_BASELINE 0.5
 #define TERNARY_HEAT_RATIO 10000
 #define TERNARY_COOLING_BASELINE 0.1
 #define GENERAL_COOLING_BASELINE 1		//The amount that non-powersource modules cool off every tick
-#define EFFICIENCY 0.99								//No system is 100% efficient
-#define OFFLINE 0
+#define EFFICIENCY 0.99				//No system is 100% efficient. EFFICIENCY = 0.99 defines a system that is 99% efficient
+#define OFFLINE 0				//When this flag is 1, the program is running in offline mode (Will not attempt to connect to Server)
 
-SYSTEMTIME t;
-int radPC;
-int rconLvl;
-int oldRconLvl;
+SYSTEMTIME t;					//The program's local time, used when updating
+int radPC;					//The current percentage of the radiation shields
+int rconLvl;					//The current reactor containment level
+int oldRconLvl;					//The previous reactor containment level (Used for updating database)
 
-using namespace std;
+using namespace std;				//Much of this is done in the standard namespace, this may not be the case once SDL/Allegro is added. If so, remove this line.
 
-bool update(char keyIn);			//NAH. NEXT PERSON TO LOOK AT THIS CODE PLEASE DO THIS
-int findByName(string fName);
-char getInput();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  void skyrimStart();
-inline void line();
+bool update(char keyIn);			//Update all required parts of the program based on the key input trapped by getInput()
+int findByName(string fName);			//Returns the ID of a module given its truncated name ("HabitatReactor" returns 0)
+char getInput();				//If a keyboard key is being pressed, it gets it ant returns that key. Otherwise, returns ' '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  void skyrimStart();
+inline void line();				//Prints a line to the screen (Aesthetic only, remove once SDL/Allegro are added)
 
-enum statuses {
+enum statuses {					//Holds the status of a module
 	normal,
 	warning,
 	destroyed
@@ -162,13 +162,13 @@ enum statuses {
 
 class Module {
   	public:    
-    		string name;
+    		string name;		//Full name of a module
 		string truncName;	//Truncated name, which will be used for receiving data.
-    		bool wire;
-	    	bool powered;
-	    	int id;
-	    	int busNum;
-	    	float temp;
+    		bool wire;		//The status of the wire (True = Connected, False = Disconnected)
+	    	bool powered;		//Whether or not the module is powered (Depends on wire and its bus' power)
+	    	int id;			//A unique ID that refers to this module alone
+	    	int busNum;		//The bus it belongs to (0 = Primary, 1 = Secondary, 2 = Ternary)
+	    	float temp;		//The current temperature of the module
 	    	float thresh1;				//Crossing this temperature means that the module goes into a "warning" state
 	    	float thresh2;				//Crossing this temperature means that the module goes into the "destroyed" state
 		float watts;				//The assumption here is that the reactor puts out a total of "enough" volts, and we designed it with the idea that it can pull whatever current we want. Therefore, watts are really the only important thing.
