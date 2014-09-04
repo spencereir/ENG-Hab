@@ -95,18 +95,6 @@
 					report on github, and I
 					will (probably) get to 
 					it within the year.
-
-			I tried to leave meaningful comments everywhere,
-			but they may be slightly completely meaningless
-			in places. Oh, and please don't use the sort
-			function. You may have heard of heap sort, which
-			works in O(n log n), or selection sort, which
-			works in O(n^2), but this one, the spencerSort™,
-			works in the fantastic complexity of O(perm(n)).
-			(Also take a look at the intelligent design sort,
-			which has a complexity of O(0), the fastest sort
-			there is). This comment block is starting to become
-			meaningless. Get to work.
 */
 
 /*
@@ -123,6 +111,7 @@ CHANGELOG
 8/28/14 - Added a Changelog
 8/28/14 - Added offline mode (Enter offline by setting the OFFLINE flag to 1)				
 8/29/14 - Removed 3 functions and instead used class prototypes to save 9 lines of code and much efficiency (As per earlier TODO)
+9/4/14  - Made various changes for readibility on git
 */
 
 #include <iostream>				//Standard I/O
@@ -164,56 +153,58 @@ int findByName(string fName);
 int maxWidth();
 char getInput();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  void skyrimStart();
 inline void line();
-vector<int> sort(vector<int> n);		//Probably don't use this
 
 enum statuses {
-  normal,
-  warning,
-  destroyed
+	normal,
+	warning,
+	destroyed
 };
 
 
 class Module {
-  public:    
-    string name;
+  	public:    
+    		string name;
 		string truncName;	//Truncated name, which will be used for receiving data.
-    bool wire;
-    bool powered;
-    int id;
-    int busNum;
-    float temp;
-    float thresh1;				//Crossing this temperature means that the module goes into a "warning" state
-    float thresh2;				//Crossing this temperature means that the module goes into the "destroyed" state
+    		bool wire;
+	    	bool powered;
+	    	int id;
+	    	int busNum;
+	    	float temp;
+	    	float thresh1;				//Crossing this temperature means that the module goes into a "warning" state
+	    	float thresh2;				//Crossing this temperature means that the module goes into the "destroyed" state
 		float watts;				//The assumption here is that the reactor puts out a total of "enough" volts, and we designed it with the idea that it can pull whatever current we want. Therefore, watts are really the only important thing.
-    statuses status;			// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
+	    	statuses status;			// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
 		bool oldWire;
 		bool oldPowered;
 		float oldTemp;
 		statuses oldStatus;				//These are the things sent over SQL
-    //Float functions
-    float heat();
+	//Float functions
+	float heat();			//Just a prototype, the function is declared later
     
-    //Void functions 
-		void power();
-    void toggleWire() {
-      wire = !wire;   
-    }     
-    void setInitialValues(int i) {
-      name = "Default";
-			truncName = "Default";
-      wire = false;
-      powered = false;
-      id = i;
-      busNum = 0;
-      temp = 0.0F;
-      watts = 0;
-			thresh1 = 95.0F;
-			thresh2 = 120.0F;
-      status = normal;
-    }
-    void display() {
-      cout << setfill('-') << setw(maxWidth()) << left << setprecision(3) << name << "--Wire: " << setfill(' ') << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
-    }
+    	//Void functions 
+	void power();
+    	
+    	void toggleWire() {
+      		wire = !wire;   
+    	}     
+    	
+    	void setInitialValues(int i) {
+      		name = "Default";
+		truncName = "Default";
+      		wire = false;
+      		powered = false;
+      		id = i;
+      		busNum = 0;
+      		temp = 0.0F;
+      		watts = 0;
+		thresh1 = 95.0F;
+		thresh2 = 120.0F;
+      		status = normal;
+    	}
+    	
+    	void display() {
+      		cout << setfill('-') << setw(maxWidth()) << left << setprecision(3) << name << "--Wire: " << setfill(' ') << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
+    	}
 };
 
 vector<Module> modules(NUM_MODULES);
@@ -236,44 +227,39 @@ class Bus {
 						else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons just accept my logic
 							
           				}
-          else {
-            powered = false;
-          }
-          break;
-        case 1:
-          if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
-            powered = true;
-            watts = SECONDARY_BUS_WATTS;         
-          }            
-          else {
-            powered = false;
-          }
-          break;   
-      }
-    }
-    void display() {
-      line();
-      string stats = "BUS ";
-      stats += to_string(busNum + 1);
-      stats += " STATISTICS";
-      int width = (80 - stats.length()) / 2;
-      for(int i = 0; i < width; i++) cout << " ";
-      cout << stats << endl;
+          				else powered = false;
+          				break;
+        			case 1:
+				        if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
+				          	powered = true;
+				          	watts = SECONDARY_BUS_WATTS;         
+				        }       					//Add source to this...?    
+				        else powered = false;
+				        break;   
+      			}
+       		}
+    		
+    		void display() {
+      			line();
+      			string stats = "BUS ";
+      			stats += to_string(busNum + 1);
+      			stats += " STATISTICS";
+      			int width = (80 - stats.length()) / 2;
+      			for(int i = 0; i < width; i++) cout << " ";
+      			cout << stats << endl;
 			if(busNum == 0) {
 				cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
 			}
-      cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
+      			cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
 			cout << "POWER SOURCE INFO:" << endl;
 			modules[source].display();
 			cout << endl;
-      for(int i = 3; i < modules.size(); i++) {
-        if(modules[i].busNum == busNum) {
-          modules[i].display();                     
-        }        
-        else break;
-      	}
-      	line();
-    	}
+      			for(int i = 3; i < modules.size(); i++) {
+        			if(modules[i].busNum == busNum) modules[i].display();                     
+        			else break;
+      			}
+      			line();
+    		}
 };
 
 vector<Bus> bus(3);
@@ -559,59 +545,34 @@ bool update(char keyIn) {
 }
 
 int findByName(string fName) {
-  for(int i = 0; i < NUM_MODULES; i++) {
-    if(modules[i].truncName == fName) {
-      return i;                   
-    }      
-  }
-  cout << "Cannot find module with name " << fName << endl;
-  system("pause");
+  	for(int i = 0; i < NUM_MODULES; i++) if(modules[i].truncName == fName) return i;         
+  	cout << "Cannot find module with name " << fName << endl;
+  	system("pause");
 }
 int maxWidth() {
-  int max = 0;
-  for(int i = 0; i < modules.size(); i++) {
-    if(modules[i].name.size() > max) max = modules[i].name.size();			//Possible speed liability (Shouldn't need to check every time... this is literally being called more than 32 times a second, so about 640 wasted cycles atm)
-  }    
-  return max;
+  	int max = 0;
+  	for(int i = 0; i < modules.size(); i++) {
+    		if(modules[i].name.size() > max) max = modules[i].name.size();			//Possible speed liability (Shouldn't need to check every time... this is literally being called more than 32 times a second, so about 640 wasted cycles atm)
+  	}    
+  	return max;
 }
 
 char getInput() {
-  char in = ' ';
-  if(_kbhit()) {
-    in = _getch();            
-  }
-  return in;
+  	char in = ' ';
+  	if(_kbhit()) {
+   		in = _getch();            
+	}
+	return in;
 }
 
 inline void line() {          //I made some witty comments on this one in habMC 
-  cout << setfill('-') << setw(80) << "-" << setfill(' ');		//"HabMC"
+	cout << setfill('-') << setw(80) << "-" << setfill(' ');		//"HabMC"
 }						//Probably a sign that i've done enough today
 
 void updateDatabase(Module mod) {
-  string cmdText = "UPDATE eng SET temp = " + to_string(mod.temp) + ", wire = " + to_string(mod.wire) + ", powered = " + to_string(mod.powered) + ", status = " + to_string(mod.status) + " WHERE name = '" + mod.truncName + "'";
-  cmd.setConnection(&con);
-  cmd.setCommandText(cmdText.c_str());
-  cmd.Execute();
-  con.Commit();
-}
-
-//This sort has a complexity of O(perm(n))... I think		(Also correct this if im wrong. Also, if perm(n) >= 10000000 then chances are this will fail)   
-#include <algorithm>
-vector<int> sort(vector<int> n) {
-  for(int h = 0; h < 10000000; h++) {
-	prev_permutation(n.begin(), n.end());
-	if(is_sorted(n.begin(), n.end())) return n;
-  }
-  cout << "help me, this cant be happening" << endl;
-  if(is_sorted(n.begin(), n.end())) return n; 
-  cout << "oh god why" << endl;
-  if(is_sorted(n.begin(), n.end())) return n;
-  cout << "look, if anyone asks, tell them that the server is down" << endl;
-  if(is_sorted(n.begin(), n.end())) return n;
-  cout << "trust me, they will believe you" << endl;
-  if(is_sorted(n.begin(), n.end())) return n;
-  vector<int> tears;
-  tears = n;
-  tears.push_back(atoi("¯\_(ツ)_/¯"));		//wat are ya gonna do?
-  return tears;
+ 	string cmdText = "UPDATE eng SET temp = " + to_string(mod.temp) + ", wire = " + to_string(mod.wire) + ", powered = " + to_string(mod.powered) + ", status = " + to_string(mod.status) + " WHERE name = '" + mod.truncName + "'";
+	cmd.setConnection(&con);
+	cmd.setCommandText(cmdText.c_str());
+	cmd.Execute();
+	con.Commit();
 }
