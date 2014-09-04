@@ -150,7 +150,6 @@ using namespace std;
 
 bool update(char keyIn);			//NAH. NEXT PERSON TO LOOK AT THIS CODE PLEASE DO THIS
 int findByName(string fName);
-int maxWidth();
 char getInput();                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  void skyrimStart();
 inline void line();
 
@@ -203,7 +202,7 @@ class Module {
     	}
     	
     	void display() {
-      		cout << setfill('-') << setw(maxWidth()) << left << setprecision(3) << name << "--Wire: " << setfill(' ') << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
+      		cout << setfill('-') << left << setprecision(3) << name << "--Wire: " << setfill(' ') << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
     	}
 };
 
@@ -548,13 +547,6 @@ int findByName(string fName) {
   	for(int i = 0; i < NUM_MODULES; i++) if(modules[i].truncName == fName) return i;         
   	cout << "Cannot find module with name " << fName << endl;
   	system("pause");
-}
-int maxWidth() {
-  	int max = 0;
-  	for(int i = 0; i < modules.size(); i++) {
-    		if(modules[i].name.size() > max) max = modules[i].name.size();			//Possible speed liability (Shouldn't need to check every time... this is literally being called more than 32 times a second, so about 640 wasted cycles atm)
-  	}    
-  	return max;
 }
 
 char getInput() {
