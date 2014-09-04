@@ -220,24 +220,22 @@ vector<Module> modules(NUM_MODULES);
 void updateDatabase(Module mod);
 
 class Bus {
-  public:
-    bool powered;   
-    int busNum;
+	public:
+    		bool powered;   
+    		int busNum;
 		int source;
 		float watts;
-    void power() {
-      switch(busNum) {
-        case 0:
-          if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
-            powered = true;       
+       		void power() {
+      			switch(busNum) {
+        			case 0:
+          				if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
+            					powered = true;       
 						watts = PRIMARY_BUS_WATTS;
-						if(modules[findByName("HabitatReactor")].powered) 
-							source = 0;
-						else if(modules[findByName("FuelCell")].powered)		//We dont have to perform checks on the connecting
-							source = 1;											//wire here because of reasons
-						else if(modules[findByName("Battery")].powered)			//just accept my logic
-							source = 2;
-          }
+						if(modules[findByName("HabitatReactor")].powered) source = 0;
+						else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
+						else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons just accept my logic
+							
+          				}
           else {
             powered = false;
           }
@@ -273,9 +271,9 @@ class Bus {
           modules[i].display();                     
         }        
         else break;
-      }
-      line();
-    }
+      	}
+      	line();
+    	}
 };
 
 vector<Bus> bus(3);
@@ -290,7 +288,7 @@ SACommand cmd;
 
 float Module::heat() {							//Declare some more functions
 	if(powered) {
-    //Heat calculations here  
+    		//Heat calculations here  
 		if(truncName == "HabitatReactor" || truncName == "Battery" || truncName == "FuelCell") {
 			if(truncName == "HabitatReactor") {
 				temp += (PRIMARY_BUS_WATTS - bus[0].watts) / PRIMARY_HEAT_RATIO - PRIMARY_COOLING_BASELINE;
@@ -318,21 +316,19 @@ float Module::heat() {							//Declare some more functions
 	  status = warning;
 	}         
 	else if(temp < 0) temp = 0;
-  return temp;
+  	return temp;
 }
 
 void Module::power() {
-  if(wire) {
-    if(bus[busNum].powered) {
-			powered = true;                       
-    }                  
+	if(wire) {
+		if(bus[busNum].powered) powered = true;                      
 		else powered = false;       
-  }
+  	}
 	else powered = false;
 }
 
 int main() {
-  if(!OFFLINE) {
+	if(!OFFLINE) {
 		ifstream inFile ("serverLocation.txt");
 		string serverComputer;
 		getline(inFile, serverComputer);
@@ -349,122 +345,122 @@ int main() {
 			exit(1);
 		}
 	}
-  //Initialize all nesseccary variables
-  char in = ' ';                                               //Holds user input
-  dTime = 500;                                                   //How many milliseconds between updates?
-  int radPC = 0;
-  int rconLvl = 0;
-  
-  //Initialize the Key Input map
-  keyMap['z'] = 0;																			//Z = Habitat Reactor
-  keyMap['n'] = 1;																			//N = Fuel Cell
-  keyMap['p'] = 2;
-  keyMap['a'] = 3;
-  keyMap['b'] = 4;
-  keyMap['c'] = 5;
-  keyMap['d'] = 6;
-  keyMap['e'] = 7;
-  keyMap['f'] = 8;
-  keyMap['g'] = 9;
-  keyMap['h'] = 10;
-  keyMap['i'] = 11;
-  keyMap['j'] = 12;
-  keyMap['k'] = 13;
-  keyMap['l'] = 14;
-  keyMap['m'] = 15;
-  keyMap['r'] = 16;
-  keyMap['o'] = 17;
-  
-  //Set all values to zero 
-  for(int i = 0; i < modules.size(); i++) {
-    modules[i].setInitialValues(i);
-  }
-  //Set up all the module information
-  modules[0].name = "Habitat Reactor";
-  modules[0].truncName = "HabitatReactor";
-  modules[1].name = "Fuel Cell";
-  modules[1].truncName = "FuelCell";
-  modules[2].name = "Battery";
-  modules[2].truncName = "Battery";
-  modules[3].name = "Radiation Shield 1";
-  modules[3].truncName = "RadiationShield1";
-  modules[4].name = "Radiation Shield 2";
-  modules[4].truncName = "RadiationShield2";
-  modules[5].name = "Artificial Gravity";
-  modules[5].truncName = "ArtificialGravity";
-  modules[5].watts = 1000;
-  modules[6].name = "Reactor Containment 1";
-  modules[6].truncName = "ReactorContainment1";
-  modules[6].watts = 50000;
-  modules[7].name = "Reactor Containment 2";
-  modules[7].truncName = "ReactorContainment2";
-  modules[7].watts = 50000;
-  modules[8].name = "RCS Engines";
-  modules[8].truncName = "RCSEngines";
-  modules[9].name = "That other one";
-  modules[9].truncName = "ThatOtherOne";
-  modules[10].name = "Engine Accelerator 1";
-  modules[10].truncName = "EngineAccelerator1";
-  modules[11].name = "Ion Engine 1";
-  modules[11].truncName = "IonEngine1";
-  modules[12].name = "Engine Accelerator 2";
-  modules[12].truncName = "EngineAccelerator2";
-  modules[13].name = "Ion Engine 2";
-  modules[13].truncName = "IonEngine2";
-  modules[14].name = "Engine Accelerator 3";
-  modules[14].truncName = "EngineAccelerator3";
-  modules[15].name = "Ion Engine 3";
-  modules[15].truncName = "IonEngine3";
-  modules[16].name = "Engine Accelerator 4";
-  modules[16].truncName = "EngineAccelerator4";
-  modules[17].name = "Ion Engine 4";
-  modules[17].truncName = "IonEngine4";
-  
-  if(startType == "") {
-    cout << "Enter h to hot start or c to cold start: ";
-    cin >> startType;
-  }
-  if(startType == "h") {																																																																																																																																																																																																																																																																																																																																																												
-    modules[findByName("HabitatReactor")].powered = true;
+	//Initialize all nesseccary variables
+	char in = ' ';                                               //Holds user input
+	dTime = 500;                                                   //How many milliseconds between updates?
+	int radPC = 0;
+	int rconLvl = 0;
+	  
+	//Initialize the Key Input map
+	keyMap['z'] = 0;																			//Z = Habitat Reactor
+	keyMap['n'] = 1;																			//N = Fuel Cell
+	keyMap['p'] = 2;
+	keyMap['a'] = 3;
+	keyMap['b'] = 4;
+	keyMap['c'] = 5;
+	keyMap['d'] = 6;
+	keyMap['e'] = 7;
+	keyMap['f'] = 8;
+	keyMap['g'] = 9;
+	keyMap['h'] = 10;
+	keyMap['i'] = 11;
+	keyMap['j'] = 12;
+	keyMap['k'] = 13;
+	keyMap['l'] = 14;
+	keyMap['m'] = 15;
+	keyMap['r'] = 16;
+	keyMap['o'] = 17;
+	  
+	//Set all values to zero 
+	for(int i = 0; i < modules.size(); i++) {
+		modules[i].setInitialValues(i);
+	}
+	//Set up all the module information
+	modules[0].name = "Habitat Reactor";
+	modules[0].truncName = "HabitatReactor";
+	modules[1].name = "Fuel Cell";
+	modules[1].truncName = "FuelCell";
+	modules[2].name = "Battery";
+	modules[2].truncName = "Battery";
+	modules[3].name = "Radiation Shield 1";
+	modules[3].truncName = "RadiationShield1";
+	modules[4].name = "Radiation Shield 2";
+	modules[4].truncName = "RadiationShield2";
+	modules[5].name = "Artificial Gravity";
+	modules[5].truncName = "ArtificialGravity";
+	modules[5].watts = 1000;
+	modules[6].name = "Reactor Containment 1";
+	modules[6].truncName = "ReactorContainment1";
+	modules[6].watts = 50000;
+	modules[7].name = "Reactor Containment 2";
+	modules[7].truncName = "ReactorContainment2";
+	modules[7].watts = 50000;
+	modules[8].name = "RCS Engines";
+	modules[8].truncName = "RCSEngines";
+	modules[9].name = "That other one";
+	modules[9].truncName = "ThatOtherOne";
+	modules[10].name = "Engine Accelerator 1";
+	modules[10].truncName = "EngineAccelerator1";
+	modules[11].name = "Ion Engine 1";
+	modules[11].truncName = "IonEngine1";
+	modules[12].name = "Engine Accelerator 2";
+	modules[12].truncName = "EngineAccelerator2";
+	modules[13].name = "Ion Engine 2";
+	modules[13].truncName = "IonEngine2";
+	modules[14].name = "Engine Accelerator 3";
+	modules[14].truncName = "EngineAccelerator3";
+	modules[15].name = "Ion Engine 3";
+	modules[15].truncName = "IonEngine3";
+	modules[16].name = "Engine Accelerator 4";
+	modules[16].truncName = "EngineAccelerator4";
+	modules[17].name = "Ion Engine 4";
+	modules[17].truncName = "IonEngine4";
+	  
+	if(startType == "") {
+		cout << "Enter h to hot start or c to cold start: ";
+		cin >> startType;
+	}
+	if(startType == "h") {																																																																																																																																																																																																																																																																																																																																																												
+		modules[findByName("HabitatReactor")].powered = true;
 		modules[findByName("HabitatReactor")].temp = 81.0F;
 		modules[findByName("HabitatReactor")].wire = true;
 		rconLvl = 2000;
-  }
-  else if(startType == "c") {
-    //cold start stuff
-	  //so nothing, right?
-		//^ yeah pretty much.
-  }
-  else {
-    cout << "Invalid start type." << endl;
-    system("PAUSE");
-    exit(1);     
-  }
-  GetLocalTime(&t);
-  time1 = t.wMilliseconds + (t.wSecond * 1000);
+	}
+	else if(startType == "c") {
+	    //cold start stuff
+		  //so nothing, right?
+			//^ yeah pretty much.
+	}
+	else {
+	    	cout << "Invalid start type." << endl;
+	    	system("PAUSE");
+		exit(1);     
+	}
+	GetLocalTime(&t);
+	time1 = t.wMilliseconds + (t.wSecond * 1000);
 	do {
-    in = getInput();
-    bool change = update(in);
-    if(change) {
+	    	in = getInput();
+	    	bool change = update(in);
+		if(change) {
 			system("cls");
-      bus[0].display();
-    }
-  } while(in != 'q');
-  system("PAUSE");
+	      		bus[0].display();
+		}
+	} while(in != 'q');
+	system("PAUSE");
 }
 
 bool update(char keyIn) {         
-  bool change = false;      
-  GetLocalTime(&t);
-  time2 = t.wMilliseconds + (t.wSecond * 1000);  
-  if(time2 - time1 >= dTime || time2 - time1 < 0) {
-    time1 = time2;
-    for(int i = 0; i < modules.size(); i++) {
-      modules[i].heat();        
-    }         
+  	bool change = false;      
+  	GetLocalTime(&t);
+  	time2 = t.wMilliseconds + (t.wSecond * 1000);  
+	if(time2 - time1 >= dTime || time2 - time1 < 0) {
+		time1 = time2;
+	    	for(int i = 0; i < modules.size(); i++) {
+	      		modules[i].heat();        
+	    	}         
 		if(modules[findByName("ReactorContainment1")].powered == false && modules[findByName("ReactorContainment2")].powered == false) {
-      rconLvl -= 1; 
-    }
+	      		rconLvl -= 1; 
+	    	}
 		else if(!modules[findByName("ReactorContainment1")].powered != !modules[findByName("ReactorContainment1")].powered) {		//Protip: (!A != !B) is a really easy way to do A XOR B. The ! before A and B converts it to a bool if it wasnt already, and doesn't affect the answer at all
 			rconLvl += 1;
 		}
@@ -480,11 +476,13 @@ bool update(char keyIn) {
 			cmd.Execute();
 			con.Commit();
 		}
-    change = true;
-  }
-  if(keyIn == 'x') {                                                  //Put here key inputs not specific to a module
+	    	change = true;
+	}
+  	if(keyIn == 'x') {                                                  //Put here key inputs not specific to a module
 		if(modules[findByName("HabitatReactor")].temp >= 81) {
 			modules[findByName("HabitatReactor")].powered = true;
+			bus[0].power();
+			modules[findByName("HabitatReactor")].power();
 			change = true;
 		}
 	}
@@ -540,7 +538,7 @@ bool update(char keyIn) {
 		}
 		change = true;                                                      //Record that a change has been made
 	}
-	for(int i = 0; i < NUM_BUSES; i++) bus[i].power();		//HORRIBLY INEFFICIENT, FIX THE ABOVE CODE ASAP
+	//for(int i = 0; i < NUM_BUSES; i++) bus[i].power();		//HORRIBLY INEFFICIENT, FIX THE ABOVE CODE ASAP
 	for(int i = 3; i < modules.size(); i++) {                             //Calculate new power values for the buses (Should only need to do this if change is true, investigate later)
 		if(modules[i].powered) {
 			bus[modules[i].busNum].watts -= modules[i].watts * (1/EFFICIENCY);					
