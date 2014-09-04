@@ -118,7 +118,6 @@ CHANGELOG
 #include <fstream>				//File I/O
 #include <string>				//C++ std::string manipulations
 #include <cstring>				//C char*/char[] manipulations
-#include <iomanip>				//Formatting outstream
 #include <map>					//Maps to handle keyboard input
 #include <conio.h>				//Keyboard I/O (kbhit)
 #include <Windows.h>				//Systemtime functions
@@ -129,8 +128,8 @@ CHANGELOG
 
 #define NUM_MODULES 18
 #define NUM_BUSES 3
-#define PRIMARY_BUS_WATTS 2500000
-#define SECONDARY_BUS_WATTS 10000
+#define PRIMARY_BUS_WATTS 2500000		//The default number of watts on the primary bus
+#define SECONDARY_BUS_WATTS 10000		//The default number of watts on the secondary bus
 #define PRIMARY_HEAT_RATIO 100000		//Bigger this is = Smaller increments in which heat goes up
 #define PRIMARY_COOLING_BASELINE 1		//Bigger this is = Larger temperature reductions every tick (1 tick = dTime milliseconds, assigned in the main function)
 #define SECONDARY_HEAT_RATIO 50000
@@ -151,7 +150,6 @@ using namespace std;				//Much of this is done in the standard namespace, this m
 bool update(char keyIn);			//Update all required parts of the program based on the key input trapped by getInput()
 int findByName(string fName);			//Returns the ID of a module given its truncated name ("HabitatReactor" returns 0)
 char getInput();				//If a keyboard key is being pressed, it gets it ant returns that key. Otherwise, returns ' '                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  void skyrimStart();
-inline void line();				//Prints a line to the screen (Aesthetic only, remove once SDL/Allegro are added)
 
 enum statuses {					//Holds the status of a module
 	normal,
@@ -169,24 +167,21 @@ class Module {
 	    	int id;			//A unique ID that refers to this module alone
 	    	int busNum;		//The bus it belongs to (0 = Primary, 1 = Secondary, 2 = Ternary)
 	    	float temp;		//The current temperature of the module
-	    	float thresh1;				//Crossing this temperature means that the module goes into a "warning" state
-	    	float thresh2;				//Crossing this temperature means that the module goes into the "destroyed" state
-		float watts;				//The assumption here is that the reactor puts out a total of "enough" volts, and we designed it with the idea that it can pull whatever current we want. Therefore, watts are really the only important thing.
-	    	statuses status;			// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
+	    	float thresh1;		//Crossing this temperature means that the module goes into a "warning" state
+	    	float thresh2;		//Crossing this temperature means that the module goes into the "destroyed" state
+		float watts;		//The assumption here is that the reactor puts out a total of "enough" volts, and we designed it with the idea that it can pull whatever current we want. Therefore, watts are really the only important thing.
+	    	statuses status;	// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
 		bool oldWire;
 		bool oldPowered;
 		float oldTemp;
-		statuses oldStatus;				//These are the things sent over SQL
+		statuses oldStatus;	//These are the things sent over SQL
 	//Float functions
 	float heat();			//Just a prototype, the function is declared later
     
     	//Void functions 
-	void power();
+	void power();			//See above
     	
-    	void toggleWire() {
-      		wire = !wire;   
-    	}     
-    	
+    	inline void toggleWire() wire = !wire;  
     	void setInitialValues(int i) {
       		name = "Default";
 		truncName = "Default";
@@ -201,9 +196,7 @@ class Module {
       		status = normal;
     	}
     	
-    	void display() {
-      		cout << setfill('-') << left << setprecision(3) << name << "--Wire: " << setfill(' ') << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
-    	}
+    	void display() cout << name << "--Wire: " << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
 };
 
 vector<Module> modules(NUM_MODULES);
@@ -239,7 +232,6 @@ class Bus {
        		}
     		
     		void display() {
-      			line();
       			string stats = "BUS ";
       			stats += to_string(busNum + 1);
       			stats += " STATISTICS";
@@ -252,12 +244,10 @@ class Bus {
       			cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
 			cout << "POWER SOURCE INFO:" << endl;
 			modules[source].display();
-			cout << endl;
       			for(int i = 3; i < modules.size(); i++) {
         			if(modules[i].busNum == busNum) modules[i].display();                     
         			else break;
       			}
-      			line();
     		}
 };
 
@@ -556,10 +546,6 @@ char getInput() {
 	}
 	return in;
 }
-
-inline void line() {          //I made some witty comments on this one in habMC 
-	cout << setfill('-') << setw(80) << "-" << setfill(' ');		//"HabMC"
-}						//Probably a sign that i've done enough today
 
 void updateDatabase(Module mod) {
  	string cmdText = "UPDATE eng SET temp = " + to_string(mod.temp) + ", wire = " + to_string(mod.wire) + ", powered = " + to_string(mod.powered) + ", status = " + to_string(mod.status) + " WHERE name = '" + mod.truncName + "'";
