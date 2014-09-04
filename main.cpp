@@ -71,7 +71,7 @@
  #       #  # # #  ### # #  # # #      #      #####  # #  # # #  ### 
  #       #   ## #    # # #   ## #      #      #   #  # #   ## #    # 
  ####### #    #  ####  # #    # ###### ###### #    # # #    #  ####
-							Hab Edition
+													Hab Edition
                        By Spencer Whitehead
 
 					If you are looking at this
@@ -159,44 +159,43 @@ enum statuses {					//Holds the status of a module
 
 
 class Module {
-  	public:    
-    		string name;		//Full name of a module
+	public:    
+		string name;		//Full name of a module
 		string truncName;	//Truncated name, which will be used for receiving data.
-    		bool wire;		//The status of the wire (True = Connected, False = Disconnected)
-	    	bool powered;		//Whether or not the module is powered (Depends on wire and its bus' power)
-	    	int id;			//A unique ID that refers to this module alone
-	    	int busNum;		//The bus it belongs to (0 = Primary, 1 = Secondary, 2 = Ternary)
-	    	float temp;		//The current temperature of the module
-	    	float thresh1;		//Crossing this temperature means that the module goes into a "warning" state
-	    	float thresh2;		//Crossing this temperature means that the module goes into the "destroyed" state
+		bool wire;		//The status of the wire (True = Connected, False = Disconnected)
+		bool powered;		//Whether or not the module is powered (Depends on wire and its bus' power)
+		int id;			//A unique ID that refers to this module alone
+		int busNum;		//The bus it belongs to (0 = Primary, 1 = Secondary, 2 = Ternary)
+		float temp;		//The current temperature of the module
+		float thresh1;		//Crossing this temperature means that the module goes into a "warning" state
+		float thresh2;		//Crossing this temperature means that the module goes into the "destroyed" state
 		float watts;		//The assumption here is that the reactor puts out a total of "enough" volts, and we designed it with the idea that it can pull whatever current we want. Therefore, watts are really the only important thing.
-	    	statuses status;	// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
+		statuses status;	// ^ Trust me, I know someone who knows electronics, and he sort of agreed with me
 		bool oldWire;
 		bool oldPowered;
 		float oldTemp;
 		statuses oldStatus;	//These are the things sent over SQL
-	//Float functions
-	float heat();			//Just a prototype, the function is declared later
-    
-    	//Void functions 
-	void power();			//See above
-    	
-    	inline void toggleWire() wire = !wire;  
-    	void setInitialValues(int i) {
-      		name = "Default";
-		truncName = "Default";
-      		wire = false;
-      		powered = false;
-      		id = i;
-      		busNum = 0;
-      		temp = 0.0F;
-      		watts = 0;
-		thresh1 = 95.0F;
-		thresh2 = 120.0F;
-      		status = normal;
-    	}
-    	
-    	void display() cout << name << "--Wire: " << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl;
+		//Float functions
+		float heat();			//Just a prototype, the function is declared later
+
+		//Void functions 
+		void power();			//See above
+
+		inline void toggleWire() { wire = !wire; }  
+		void setInitialValues(int i) {
+			name = "Default";
+			truncName = "Default";
+			wire = false;
+			powered = false;
+			id = i;
+			busNum = 0;
+			temp = 0.0F;
+			watts = 0;
+			thresh1 = 95.0F;
+			thresh2 = 120.0F;
+			status = normal;
+		}
+		void display() { cout << name << "--Wire: " << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl; }
 };
 
 vector<Module> modules(NUM_MODULES);
@@ -204,51 +203,48 @@ void updateDatabase(Module mod);
 
 class Bus {
 	public:
-    		bool powered;   
-    		int busNum;
+		bool powered;   
+		int busNum;
 		int source;
 		float watts;
        		void power() {
       			switch(busNum) {
         			case 0:
-          				if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
-            					powered = true;       
-						watts = PRIMARY_BUS_WATTS;
-						if(modules[findByName("HabitatReactor")].powered) source = 0;
-						else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
-						else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons just accept my logic
-							
-          				}
-          				else powered = false;
-          				break;
-        			case 1:
-				        if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
-				          	powered = true;
-				          	watts = SECONDARY_BUS_WATTS;         
-				        }       					//Add source to this...?    
-				        else powered = false;
-				        break;   
-      			}
+								if((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) || ((modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire) && true/*change this to check wires connecting bus 1/2*/)) {
+									powered = true;       
+									watts = PRIMARY_BUS_WATTS;
+									if(modules[findByName("HabitatReactor")].powered) source = 0;
+									else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
+									else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons. just accept my logic							
+								}
+								else powered = false;
+								break;
+							case 1:
+								if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
+										powered = true;
+										watts = SECONDARY_BUS_WATTS;         
+								}       					//Add source to this...?    
+								else powered = false;
+								break;   
+						}
        		}
     		
     		void display() {
-      			string stats = "BUS ";
-      			stats += to_string(busNum + 1);
-      			stats += " STATISTICS";
-      			int width = (80 - stats.length()) / 2;
-      			for(int i = 0; i < width; i++) cout << " ";
-      			cout << stats << endl;
-			if(busNum == 0) {
-				cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
-			}
-      			cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
-			cout << "POWER SOURCE INFO:" << endl;
-			modules[source].display();
-      			for(int i = 3; i < modules.size(); i++) {
-        			if(modules[i].busNum == busNum) modules[i].display();                     
-        			else break;
-      			}
-    		}
+					string stats = "BUS ";
+					stats += to_string(busNum + 1);
+					stats += " STATISTICS";
+					int width = (80 - stats.length()) / 2;
+					for(int i = 0; i < width; i++) cout << " ";
+					cout << stats << endl;
+					if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
+					cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
+					cout << "POWER SOURCE INFO:" << endl;
+					modules[source].display();
+					for(int i = 3; i < modules.size(); i++) {
+						if(modules[i].busNum == busNum) modules[i].display();                     
+						else break;
+					}
+				}
 };
 
 vector<Bus> bus(3);
@@ -263,7 +259,7 @@ SACommand cmd;
 
 float Module::heat() {							//Declare some more functions
 	if(powered) {
-    		//Heat calculations here  
+		//Heat calculations here  
 		if(truncName == "HabitatReactor" || truncName == "Battery" || truncName == "FuelCell") {
 			if(truncName == "HabitatReactor") {
 				temp += (PRIMARY_BUS_WATTS - bus[0].watts) / PRIMARY_HEAT_RATIO - PRIMARY_COOLING_BASELINE;
@@ -284,21 +280,21 @@ float Module::heat() {							//Declare some more functions
 		}
 	}
 	else temp -= GENERAL_COOLING_BASELINE;
-		if(temp > thresh1) {
-			if(temp > thresh2) {
-		  status = destroyed;  
+	if(temp > thresh1) {
+		if(temp > thresh2) {
+			status = destroyed;  
 		}        
-	  status = warning;
+		status = warning;
 	}         
 	else if(temp < 0) temp = 0;
-  	return temp;
+	return temp;
 }
 
 void Module::power() {
 	if(wire) {
 		if(bus[busNum].powered) powered = true;                      
 		else powered = false;       
-  	}
+	}
 	else powered = false;
 }
 
@@ -402,40 +398,40 @@ int main() {
 		rconLvl = 2000;
 	}
 	else if(startType == "c") {
-	    //cold start stuff
-		  //so nothing, right?
-			//^ yeah pretty much.
+		//cold start stuff
+		//so nothing, right?
+		//^ yeah pretty much.
 	}
 	else {
-	    	cout << "Invalid start type." << endl;
-	    	system("PAUSE");
+		cout << "Invalid start type." << endl;
+		system("PAUSE");
 		exit(1);     
 	}
 	GetLocalTime(&t);
 	time1 = t.wMilliseconds + (t.wSecond * 1000);
 	do {
-	    	in = getInput();
-	    	bool change = update(in);
+		in = getInput();
+		bool change = update(in);
 		if(change) {
 			system("cls");
-	      		bus[0].display();
+			bus[0].display();
 		}
 	} while(in != 'q');
 	system("PAUSE");
 }
 
 bool update(char keyIn) {         
-  	bool change = false;      
-  	GetLocalTime(&t);
-  	time2 = t.wMilliseconds + (t.wSecond * 1000);  
+	bool change = false;      
+	GetLocalTime(&t);
+	time2 = t.wMilliseconds + (t.wSecond * 1000);  
 	if(time2 - time1 >= dTime || time2 - time1 < 0) {
 		time1 = time2;
-	    	for(int i = 0; i < modules.size(); i++) {
-	      		modules[i].heat();        
-	    	}         
+		for(int i = 0; i < modules.size(); i++) {
+			modules[i].heat();        
+		}         
 		if(modules[findByName("ReactorContainment1")].powered == false && modules[findByName("ReactorContainment2")].powered == false) {
-	      		rconLvl -= 1; 
-	    	}
+			rconLvl -= 1; 
+		}
 		else if(!modules[findByName("ReactorContainment1")].powered != !modules[findByName("ReactorContainment1")].powered) {		//Protip: (!A != !B) is a really easy way to do A XOR B. The ! before A and B converts it to a bool if it wasnt already, and doesn't affect the answer at all
 			rconLvl += 1;
 		}
@@ -451,7 +447,7 @@ bool update(char keyIn) {
 			cmd.Execute();
 			con.Commit();
 		}
-	    	change = true;
+		change = true;
 	}
   	if(keyIn == 'x') {                                                  //Put here key inputs not specific to a module
 		if(modules[findByName("HabitatReactor")].temp >= 81) {
@@ -513,7 +509,7 @@ bool update(char keyIn) {
 		}
 		change = true;                                                      //Record that a change has been made
 	}
-	//for(int i = 0; i < NUM_BUSES; i++) bus[i].power();		//HORRIBLY INEFFICIENT, FIX THE ABOVE CODE ASAP
+	else for(int i = 0; i < NUM_BUSES; i++) bus[i].power();		
 	for(int i = 3; i < modules.size(); i++) {                             //Calculate new power values for the buses (Should only need to do this if change is true, investigate later)
 		if(modules[i].powered) {
 			bus[modules[i].busNum].watts -= modules[i].watts * (1/EFFICIENCY);					
@@ -530,25 +526,25 @@ bool update(char keyIn) {
 			updateDatabase(modules[i]);
 		}
 	}
-  return change;
+	return change;
 }
 
 int findByName(string fName) {
-  	for(int i = 0; i < NUM_MODULES; i++) if(modules[i].truncName == fName) return i;         
-  	cout << "Cannot find module with name " << fName << endl;
-  	system("pause");
+	for(int i = 0; i < NUM_MODULES; i++) if(modules[i].truncName == fName) return i;         
+	cout << "Cannot find module with name " << fName << endl;
+	system("pause");
 }
 
 char getInput() {
-  	char in = ' ';
-  	if(_kbhit()) {
+	char in = ' ';
+	if(_kbhit()) {
    		in = _getch();            
 	}
 	return in;
 }
 
 void updateDatabase(Module mod) {
- 	string cmdText = "UPDATE eng SET temp = " + to_string(mod.temp) + ", wire = " + to_string(mod.wire) + ", powered = " + to_string(mod.powered) + ", status = " + to_string(mod.status) + " WHERE name = '" + mod.truncName + "'";
+	string cmdText = "UPDATE eng SET temp = " + to_string(mod.temp) + ", wire = " + to_string(mod.wire) + ", powered = " + to_string(mod.powered) + ", status = " + to_string(mod.status) + " WHERE name = '" + mod.truncName + "'";
 	cmd.setConnection(&con);
 	cmd.setCommandText(cmdText.c_str());
 	cmd.Execute();
