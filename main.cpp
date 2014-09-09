@@ -95,36 +95,60 @@
 					report on github, and I
 					will (probably) get to 
 					it within the year.
-*/
 
-/*
+		If you change anything here or find anything wrong with your changes, please record everything in the Changelog and
+	the TODO. It just really makes everything easier for everyone. Additionally, you can message me (See above) to get
+	contributor privilages on git, but please please pleease dont push to master until you are 100% sure in all circumstances
+	that your fix works. I can create a branch for you while we delegate to QA (Is that a taskforce? That should be a taskforce)
+
+		DISTRIBUTION:
+		I haven't quite figured out the whole "Windows Installer/Updater" thing, so, for now, we can safely assume that updates
+	will be performed by replacing the binaries and adding whatever resources are nessecary (Will update later)
+
 TODO
 (No = I have decided not to do this)
 (NF = Not finished, probably do this)
+(WIP = Work In Progress, I'm currently doing this)
 (Finished = I have finished this idea)
-      NF - I have marked inefficient code segments with disabled breakpoints, fix these.
+Finished - I have marked inefficient code segments with disabled breakpoints, fix these.
       No - The Module and Bus classes are circularly dependant. By seperating them into their own files, multiple function calls will be saved (Amounting to something like 200 cycles/second)
       No - ^ ALTERNATE: MAKE A VECTOR MEMBER OF BUS THAT HOLDS VECTORS! BAM PROBLEM SOLVED GO REWRITE 500 LINES OF CODE MAKE A BRANCH FOR THIS ON GITHUB?
 Finished - Use class prototypes and declare the circularlry dependant functions after both classes are written
+Finished - Add a source value for the second bus
+	  NF - Totally in the wrong place, but set up some sort of active server program. It will serve as a placebo, as well as just checking what computers it can see every 10 seconds or so. To do this, give every computer a server (Put something in here to set it up) with a set of return codes. Have the computers update their local tables when they hit an error (Ex: set a local variable to 2 on fail to connect)
+Finished - Fix a bug that causes radiation shields to not drain power properly
+Finished - Fix a bug that causes bus to still read as having power on it after the power source is destroyed
+	  NF - Fix a bug that causes the user to still be able to use bus 1 as if it is powered so long as they do not release a key (This is probably true for bus 2 also, cannot test yet)
+	  NF - Fix a bug that causes the bus watt values to fluctuate while modifying radiation shields (I have NO idea what causes this, kudos if you solve it)
+
 CHANGELOG
 8/28/14 - Did everything that isn't documented because I started a changelog way too late
 8/28/14 - Added a Changelog
 8/28/14 - Added offline mode (Enter offline by setting the OFFLINE flag to 1)				
 8/29/14 - Removed 3 functions and instead used class prototypes to save 9 lines of code and much efficiency (As per earlier TODO)
 9/4/14  - Made various changes for readibility on git
+9/8/14  - Saved about 1000/cycles per tick at the cost of readability (Which is unnessecary, we only need to feed raw data to SDL/Allegro)
+9/8/14  - Added support for destroyed modules. When reported as destroyed, a module will be unable to be heated, cooled, or powered.
+9/8/14  - Fixed multiple bugs surrounding destroyed power source modules (See TODO)
+9/9/14  - Fixed radiation shield power bug
+9/9/14  - Added a source value to the secondary bus
+9/9/14  - Against my better judgement, I have decided we will be using Allegro. SDL is too complicated, and everyone in Lisgar ICS alreeady knows Allegro, making this easier
 */
 
+//#include <allegro.h>
+//#include <winalleg.h>
 #include <iostream>				//Standard I/O
 #include <fstream>				//File I/O
 #include <string>				//C++ std::string manipulations
 #include <cstring>				//C char*/char[] manipulations
 #include <map>					//Maps to handle keyboard input
 #include <conio.h>				//Keyboard I/O (kbhit)
-#include <Windows.h>				//Systemtime functions
+#include <Windows.h>			//Systemtime functions
 #include <vector>				//Vectors > Arrays
 #include <SQLAPI.h>				//Database I/O
 
 #pragma comment(lib, "sqlapi.lib")		//Link to the SQL API
+//#pragma comment(lib, "alleg.lib")
 
 #define NUM_MODULES 18
 #define NUM_BUSES 3
@@ -138,7 +162,7 @@ CHANGELOG
 #define TERNARY_COOLING_BASELINE 0.1
 #define GENERAL_COOLING_BASELINE 1		//The amount that non-powersource modules cool off every tick
 #define EFFICIENCY 0.99				//No system is 100% efficient. EFFICIENCY = 0.99 defines a system that is 99% efficient
-#define OFFLINE 0				//When this flag is 1, the program is running in offline mode (Will not attempt to connect to Server)
+#define OFFLINE 1				//When this flag is 1, the program is running in offline mode (Will not attempt to connect to Server)
 
 SYSTEMTIME t;					//The program's local time, used when updating
 int radPC;					//The current percentage of the radiation shields
@@ -175,13 +199,15 @@ class Module {
 		bool oldPowered;
 		float oldTemp;
 		statuses oldStatus;	//These are the things sent over SQL
-		//Float functions
+		
 		float heat();			//Just a prototype, the function is declared later
-
-		//Void functions 
+ 
 		void power();			//See above
 
-		inline void toggleWire() { wire = !wire; }  
+		inline void toggleWire() { 
+			wire = !wire; 
+		}
+
 		void setInitialValues(int i) {
 			name = "Default";
 			truncName = "Default";
@@ -191,11 +217,20 @@ class Module {
 			busNum = 0;
 			temp = 0.0F;
 			watts = 0;
-			thresh1 = 95.0F;
-			thresh2 = 120.0F;
+			thresh1 = 100.0F;
+			thresh2 = 125.0F;
 			status = normal;
 		}
-		void display() { cout << name << "--Wire: " << wire << " Powered: " << powered << " Temp: " << temp << " ID: " << id << " Status: " << status << endl; }
+
+		inline void display() {				//It's only 1 line, so overload with inline to increase speed 
+			cout << name 
+				 << " Wire: " << wire 
+				 << " Powered: " << powered 
+				 << " Temp: " << temp 
+				 << " ID: " << id 
+				 << " Status: " << status 
+				 << endl; 
+		}
 };
 
 vector<Module> modules(NUM_MODULES);
@@ -217,14 +252,25 @@ class Bus {
 						else if(modules[findByName("FuelCell")].powered) source = 1;	//We dont have to perform checks on the connecting						
 						else if(modules[findByName("Battery")].powered) source = 2;	//wire here because of reasons. just accept my logic							
 					}
-					else powered = false;
+					else {
+						powered = false;
+						watts = 0;
+						source = -1;
+					}
 					break;
 				case 1:
 					if(((modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire) && true/*see above*/) || (modules[findByName("FuelCell")].powered && modules[findByName("FuelCell")].wire) || (modules[findByName("Battery")].powered && modules[findByName("Battery")].wire)) {
 						powered = true;
 						watts = SECONDARY_BUS_WATTS;         
-					}       					//Add source to this...?    
-					else powered = false;
+						if(modules[findByName("HabitatReactor")].powered && modules[findByName("HabitatReactor")].wire && true /*wire connecty thingy */) source = 0;
+						else if(modules[findByName("FuelCell")].powered) source = 1;
+						else if(modules[findByName("Battery")].powered) source = 2.
+					}       	    
+					else {
+						powered = false;
+						watts = 0;
+						source = -1;
+					}
 					break;   
 			}
 		}
@@ -237,8 +283,16 @@ class Bus {
 			for(int i = 0; i < width; i++) cout << " ";
 			cout << stats << endl;
 			if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
-			cout << "POWERED: " << powered << " WATTS: " << watts << "W" << " POWER SOURCE: " << modules[source].name << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl << "POWER SOURCE INFO: " << endl;
-			modules[source].display();
+			cout << "POWERED: " << powered << " WATTS: " << watts << "W";
+			if(source != -1) cout << " POWER SOURCE: " << modules[source].name;
+			else cout << " POWER SOURCE: NOT POWERED";
+			cout << " TIME: " << t.wMilliseconds + (t.wSecond * 1000) << endl << endl;
+			if(source != -1) {
+				cout << "POWER SOURCE INFO: " << endl;
+				modules[source].display();
+				cout << endl << endl;
+			}
+			else cout << "NOT POWERED" << endl << endl;
 			for(int i = 3; i < modules.size(); i++) {
 				if(modules[i].busNum == busNum) modules[i].display();                     
 				else break;
@@ -257,7 +311,7 @@ SAConnection con;
 SACommand cmd;
 
 float Module::heat() {							//Declare some more functions
-	if(powered) {
+	if(powered && status != destroyed) {
 		//Heat calculations here  
 		if(truncName == "HabitatReactor" || truncName == "Battery" || truncName == "FuelCell") {
 			if(truncName == "HabitatReactor") {
@@ -278,19 +332,20 @@ float Module::heat() {							//Declare some more functions
 			}
 		}
 	}
-	else temp -= GENERAL_COOLING_BASELINE;
+	else if(status != destroyed) temp -= GENERAL_COOLING_BASELINE;
 	if(temp > thresh1) {
 		if(temp > thresh2) {
-			status = destroyed;  
+			status = destroyed;
+			power();
 		}        
-		status = warning;
+		else status = warning;
 	}         
 	else if(temp < 0) temp = 0;
 	return temp;
 }
 
 void Module::power() {
-	if(wire) {
+	if(wire && status != destroyed) {
 		if(bus[busNum].powered) powered = true;                      
 		else powered = false;       
 	}
@@ -324,12 +379,12 @@ int main() {
 	//Initialize the Key Input map
 	keyMap['z'] = 0;																			//Z = Habitat Reactor
 	keyMap['n'] = 1;																			//N = Fuel Cell
-	keyMap['p'] = 2;
-	keyMap['a'] = 3;
-	keyMap['b'] = 4;
-	keyMap['c'] = 5;
-	keyMap['d'] = 6;
-	keyMap['e'] = 7;
+	keyMap['p'] = 2;																			//P = Battery
+	keyMap['a'] = 3;																			//A = Radiation Shield 1
+	keyMap['b'] = 4;																			//B = Radiation Shield 2
+	keyMap['c'] = 5;																			//C = Artificial Gravity
+	keyMap['d'] = 6;																			//D = Reactor Containment 1
+	keyMap['e'] = 7;																			//E = Reactor Containment 2
 	keyMap['f'] = 8;
 	keyMap['g'] = 9;
 	keyMap['h'] = 10;
@@ -341,10 +396,11 @@ int main() {
 	keyMap['r'] = 16;
 	keyMap['o'] = 17;
 	  
-	//Set all values to zero 
+	//Loop through all modules, setting their values to zero 
 	for(int i = 0; i < modules.size(); i++) {
 		modules[i].setInitialValues(i);
 	}
+
 	//Set up all the module information
 	modules[0].name = "Habitat Reactor";
 	modules[0].truncName = "HabitatReactor";
@@ -354,11 +410,13 @@ int main() {
 	modules[2].truncName = "Battery";
 	modules[3].name = "Radiation Shield 1";
 	modules[3].truncName = "RadiationShield1";
+	modules[3].watts = 10000;
 	modules[4].name = "Radiation Shield 2";
 	modules[4].truncName = "RadiationShield2";
+	modules[3].watts = 10000;
 	modules[5].name = "Artificial Gravity";
 	modules[5].truncName = "ArtificialGravity";
-	modules[5].watts = 1000;
+	modules[5].watts = 10000;
 	modules[6].name = "Reactor Containment 1";
 	modules[6].truncName = "ReactorContainment1";
 	modules[6].watts = 50000;
@@ -367,8 +425,10 @@ int main() {
 	modules[7].watts = 50000;
 	modules[8].name = "RCS Engines";
 	modules[8].truncName = "RCSEngines";
+	modules[8].watts = 10000;
 	modules[9].name = "That other one";
 	modules[9].truncName = "ThatOtherOne";
+	modules[9].watts = 10000;
 	modules[10].name = "Engine Accelerator 1";
 	modules[10].truncName = "EngineAccelerator1";
 	modules[11].name = "Ion Engine 1";
@@ -385,7 +445,6 @@ int main() {
 	modules[16].truncName = "EngineAccelerator4";
 	modules[17].name = "Ion Engine 4";
 	modules[17].truncName = "IonEngine4";
-	  
 	if(startType == "") {
 		cout << "Enter h to hot start or c to cold start: ";
 		cin >> startType;
@@ -509,12 +568,15 @@ bool update(char keyIn) {
 		change = true;                                                      //Record that a change has been made
 	}
 	else for(int i = 0; i < NUM_BUSES; i++) bus[i].power();		
+	
 	for(int i = 3; i < modules.size(); i++) {                             //Calculate new power values for the buses (Should only need to do this if change is true, investigate later)
 		if(modules[i].powered) {
-			bus[modules[i].busNum].watts -= modules[i].watts * (1/EFFICIENCY);					
+			if(modules[i].truncName == "RadiationShield1" || modules[i].truncName == "RadiationShield2") bus[modules[i].busNum].watts -= modules[i].watts * radPC * (1/EFFICIENCY);
+			else bus[modules[i].busNum].watts -= modules[i].watts * (1/EFFICIENCY);					
 			if(bus[modules[i].busNum].watts < 0) {																//If the bus cannot provide enough wattage for a module
 				modules[i].powered = false;																					//Power off that module
-				bus[modules[i].busNum].watts += modules[i].watts * (1/EFFICIENCY);  //Return the spent watts
+				if(modules[i].name == "RadiationShield1" || modules[i].name == "RadiationShield2") bus[modules[i].busNum].watts += modules[i].watts * radPC * (1/EFFICIENCY);
+				else bus[modules[i].busNum].watts += modules[i].watts * (1/EFFICIENCY);  //Return the spent watts
 			}
 		}
 		if(!OFFLINE && (modules[i].temp != modules[i].oldTemp || modules[i].wire != modules[i].oldWire || modules[i].powered != modules[i].oldPowered || modules[i].status != modules[i].oldStatus)) {
