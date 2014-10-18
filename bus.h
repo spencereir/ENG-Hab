@@ -14,7 +14,7 @@ class Bus {
 	public:
 		//Constructors
 		Bus();
-		Bus(int a);
+		Bus(int);
 
 		//Accessors
 		bool isPowered() { return powered; }

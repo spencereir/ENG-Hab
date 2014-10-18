@@ -1,11 +1,9 @@
 #include "bus.h"
-//#include "main.h"
-//#include "globals.h"
 
 extern std::vector<Module> module;
 extern std::vector<Bus> bus;
 extern int radPC;
-extern int rconLvl;
+extern int rcon_lvl;
 
 Bus::Bus() {
 	busNum = 0;

@@ -31,12 +31,12 @@ Finished - Fix a bug that causes bus to still read as having power on it after t
       NF - Fix a bug that causes the user to still be able to use bus 1 as if it is powered so long as they do not release a key (This is probably true for bus 2 also, cannot test yet)
       NF - Fix a bug that causes the bus watt values to fluctuate while modifying radiation shields (I have NO idea what causes this, kudos if you solve it)
       NF - Find out why sources other than Hab Reactor cant power primary bus
-	  NF - Maybe find a better way to set up bitmaps than passing x and y to all of them? Excepting this, make good X and Y values. The overeall layout of eng should stay the same so there is as little confusion as possible
+	  NF - Maybe find a better way to set up bitmaps than passing x and y to all of them? Excepting this, make good X and Y values. The overeall layout of ENG should stay the same so there is as little confusion as possible
 	 WIP - Create images and make it draw things that aren't just text
-Finished- Make a debouncer for the keys (Keypressed function probably, will need a real debouncer for rad shields though)
+Finished - Make a debouncer for the keys
 	  NF - Make coolants do stuff
-Finished - Maybe, just maybe, I can clean up class functions if I make Bus.cpp and Module.cpp
-	  NF - Modify the database file so that it has a timestamp for the update. http://dba.stackexchange.com/questions/45470/get-the-time-of-last-update-of-a-column. If it is sooner than expected (The last time this had updated it) read the entire database into the program. This will allow for the simmies to change things
+Finished - Clean up class functions using seperate source files
+     WIP - Use a unique ID to track when the database was last changed
 
 CHANGELOG
 8/28/14  - Did everything that isn't documented because I started a changelog way too late
@@ -59,6 +59,7 @@ CHANGELOG
 9/23/14  - Tried multiple ways to put functions with class headers, did not work, 3/10, would not reccomend to a friend
 10/3/14  - Hey past me, you are dumb. I did classes for real now and its better
 10/4/14  - After many many many many hours of work, I've finished the whole classes thing. It's now so much easier to read overall.
+10/18/14 - Added ifndef guards to allow for machines without SQLAPI to run the offline mode
 */
 
 #include <allegro.h>			//Graphics
@@ -69,25 +70,23 @@ CHANGELOG
 #include <map>					//Maps to handle keyboard input
 #include <SQLAPI.h>				//Database I/O
 #include "main.h"
-#include "globals.h"
 
-#define OFFLINE 1				//When this flag is 1, the program is running in offline mode (Will not attempt to connect to Server)
-#define FULLSCREEN 0			//When this flag is 1, the program will run in fullscreen mode. Otherwise, it will run in windowed mode. Fullscreen mode does not work on all computers
-
-using namespace std;				//Much of this is done in the standard namespace, this may not be the case once SDL/Allegro is added. If so, remove this line.
+//#define OFFLINE 				//When this flag is set, the program is running in offline mode (Will not attempt to connect to Server)
+//#define FULLSCREEN				//When this flag is set, the program will run in fullscreen mode. Otherwise, it will run in windowed mode. Fullscreen mode does not work on all computers
 
 std::vector<Module> module(NUM_MODULES, Module());
 std::vector<Bus> bus(NUM_BUSES, Bus());
-int radPC;					
-int rconLvl;				
+int radPC;				
+int rcon_lvl;				
+int update_id = 0;
 Mode mode;
 SYSTEMTIME t;						//The program's local time, used when updating
-int oldRconLvl;						//The previous reactor containment level (Used for updating database)
-map<char, int> keyMap;
+int oldrcon_lvl;						//The previous reactor containment level (Used for updating database)
+std::map<char, int> key_map;
 double time1;
 double time2;
-double dTime;
-string startType = "";
+double d_time;
+std::string startType = "";
 SAConnection con;
 SACommand cmd;
 BITMAP *buffer;
@@ -95,56 +94,71 @@ BITMAP *buffer;
 void displayModule(Module);
 void displayBus(Bus);
 bool update(char);					//Update all required parts of the program based on the key input trapped by getInput()
-int findByName(string);				//Returns the ID of a module given its truncated name ("HabitatReactor" returns 0)
+void draw();
+int findByName(std::string);				//Returns the ID of a module given its truncated name ("HabitatReactor" returns 0)
 void updateDatabase(Module);		//Update the SQL database with all the information about the given module
+void updateFromDatabase(int);		//Read in the database. Mode 0 reads in piloting information only, mode 1 reads the whole thing
+int getUpdateID();					//Returns the current engineering update ID
 void comment();
 
 int main() {
-	if(!OFFLINE) {
-		ifstream inFile ("serverLocation.txt");
-		string serverComputer;
-		getline(inFile, serverComputer);
+	#ifndef OFFLINE
+		std::ifstream inFile ("serverLocation.txt");
+		std::string serverComputer;
+		std::getline(inFile, serverComputer);
 		inFile.close();
 		serverComputer += "@spacesimServer";
 		char *databaseName = (char*) serverComputer.c_str();
 		try {
-			con.Connect("spacesimServer", "root", "isotope", SA_MySQL_Client);
+			con.Connect(databaseName, "root", "isotope", SA_MySQL_Client);
 		} catch(SAException &x) {
-			cout << "Error: " << x.ErrText() << endl;
+			std::cout << "Error: " << x.ErrText() << std::endl;
 			system("pause");
 			exit(1);
 		}
-	}
+	#endif 
 
 	//Initialize all local variables
-	char in = ' ';                                               //Holds user input
-	dTime = 500;                                                   //How many milliseconds between updates?
+	char in = ' ';                                              //Holds user input
+	d_time = 500;												//Number of miliseconds between updates
 	int radPC = 0;
-	int rconLvl = 0;
-	string input = "";
+	int rcon_lvl = 0;
+	std::string input = "";
 
 	//Initialize the Key Input map
-	keyMap['z'] = 0;																			//Z = Habitat Reactor
-	keyMap['n'] = 1;																			//N = Fuel Cell
-	keyMap['p'] = 2;																			//P = Battery
-	keyMap['a'] = 3;																			//A = Radiation Shield 1
-	keyMap['b'] = 4;																			//B = Radiation Shield 2
-	keyMap['c'] = 5;																			//C = Artificial Gravity
-	keyMap['d'] = 6;																			//D = Reactor Containment 1
-	keyMap['e'] = 7;																			//E = Reactor Containment 2
-	keyMap['f'] = 8;																			//F = RCS Engines
-	keyMap['g'] = 9;																			//G = I ACTUALLY HAVE NO IDEA
-	keyMap['h'] = 10;																			//H = Engine Accelerator 1
-	keyMap['i'] = 11;																			//I = Ion Engine 1
-	keyMap['j'] = 12;																			//J = Engine Accelerator 2
-	keyMap['k'] = 13;																			//K = Ion Engine 2
-	keyMap['l'] = 14;																			//L = Engine Accelerator 3
-	keyMap['m'] = 15;																			//M = Ion Engine 3
-	keyMap['n'] = 16;																			//N = Engine Accelerator 4
-	keyMap['o'] = 17;																			//O = Ion Engine 4
+	key_map['z'] = 0;																			//Z = Habitat Reactor
+	key_map['n'] = 1;																			//N = Fuel Cell
+	key_map['p'] = 2;																			//P = Battery
+	key_map['a'] = 3;																			//A = Radiation Shield 1
+	key_map['b'] = 4;																			//B = Radiation Shield 2
+	key_map['c'] = 5;																			//C = Artificial Gravity
+	key_map['d'] = 6;																			//D = Reactor Containment 1
+	key_map['e'] = 7;																			//E = Reactor Containment 2
+	key_map['f'] = 8;																			//F = RCS Engines
+	key_map['g'] = 9;																			//G = I ACTUALLY HAVE NO IDEA
+	key_map['h'] = 10;																			//H = Engine Accelerator 1
+	key_map['i'] = 11;																			//I = Ion Engine 1
+	key_map['j'] = 12;																			//J = Engine Accelerator 2
+	key_map['k'] = 13;																			//K = Ion Engine 2
+	key_map['l'] = 14;																			//L = Engine Accelerator 3
+	key_map['m'] = 15;																			//M = Ion Engine 3
+	key_map['n'] = 16;																			//N = Engine Accelerator 4
+	key_map['o'] = 17;																			//O = Ion Engine 4
+
+	allegro_init();
+	set_color_depth(32);
+	
+	#ifdef 
+		set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
+	#else
+		set_gfx_mode(GFX_AUTODETECT_WINDOWED, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
+	#endif
+	
+	install_keyboard();
+	buffer = create_bitmap(SCREEN_W, SCREEN_H);
 
 	//Set up all the module information
-	module[0] = Module("Habitat Reactor", "HabitatReactor", 0, 10000);
+	module[0] = Module("Habitat Reactor", "HabitatReactor", 0, 0, 10000, 100, 100);
 	module[1] = Module("Fuel Cell", "FuelCell", 1, 10000);
 	module[2] = Module("Battery", "Battery", 2, 10000);
 	module[3] = Module("Radiation Shield 1", "RadiationShield1", 3, 10000);
@@ -163,42 +177,26 @@ int main() {
 	module[16] = Module("Engine Accelerator 4", "EngineAccelerator4", 16, 10000);
 	module[17] = Module("IonEngine4", "IonEngine4", 17, 10000);
 
-	allegro_init();
-	set_color_depth(32);
-	
-	if(FULLSCREEN) 
-		set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-	else
-		set_gfx_mode(GFX_AUTODETECT_WINDOWED, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-
-	install_keyboard();
-	buffer = create_bitmap(SCREEN_W, SCREEN_H);
 	textprintf_ex(screen, font, SCREEN_W / 2 - (text_length(font, "Press H to hot start or C to cold start") / 2), SCREEN_H / 2 - (text_height(font) / 2), makecol(255, 255, 255), makecol(0, 0, 0), "Press H to hot start or C to cold start");
-	if(startType == "") {
-		while(true) {
-		    if(key[KEY_H]) {
-				startType = "h";
-				break;
-			}
-			else if(key[KEY_C]) {
-				startType = "c";
-				break;
-			}
-		}
+
+	while(startType == "") {
+		if(key[KEY_H])
+			startType = "h";
+		else if(key[KEY_C])
+			startType = "c";
 	}
+
 	if(startType == "h") {																																																																																																																																																																																																																																																																																																																																																												
 		module[findByName("HabitatReactor")].setPowered(true);
 		module[findByName("HabitatReactor")].setTemp(81.0F);
 		module[findByName("HabitatReactor")].setWire(true);
-		rconLvl = 2000;
+		rcon_lvl = 2000;
 	}
 	else if(startType == "c") {
-		//cold start stuff
-		//so nothing, right?
-		//^ yeah pretty much.
+		//If cold starting requires anything special, put that here
 	}
 	else {
-		cout << "Invalid start type." << endl;
+		std::cout << "Invalid start type." << std::endl;
 		system("PAUSE");
 		exit(1);     
 	}
@@ -228,46 +226,46 @@ int main() {
 		}
 		else 
 			in = ' ';
+		
 		bool change = update(in);
-		if(change) {
-			displayBus(bus[0]);
-			blit(buffer, screen, 0, 0, 0, 0, buffer->w, buffer->h);
-		}
+		if(change) 
+			draw();
 	} while(true);
 	return 0;
 }
 END_OF_MAIN()
 
-bool update(char keyIn) {         
+bool update(char key_in) {         
 	bool change = false;      
 	GetLocalTime(&t);
 	time2 = t.wMilliseconds + (t.wSecond * 1000);  
-	if(time2 - time1 >= dTime || time2 - time1 < 0) {
+	if(time2 - time1 >= d_time || time2 - time1 < 0) {
 		time1 = time2;
 		for(int i = 0; i != module.size() - 1; i++) {
 			module[i].heat();        
 		}         
 		if(module[findByName("ReactorContainment1")].isPowered() == false && module[findByName("ReactorContainment2")].isPowered() == false) {
-			rconLvl -= 8; 
+			rcon_lvl -= 8; 
 		}
 		else if(!module[findByName("ReactorContainment1")].isPowered() != !module[findByName("ReactorContainment1")].isPowered()) {		//Protip: (!A != !B) is a really easy way to do A XOR B. The ! before A and B converts it to a bool if it wasnt already, and doesn't affect the answer at all
-			rconLvl += 8;
+			rcon_lvl += 8;
 		}
 		else {
-			rconLvl += 16;
+			rcon_lvl += 16;
 		}
-		if(rconLvl > 2000) rconLvl = 2000;
-		else if(rconLvl < 0) rconLvl = 0;
-		if(!OFFLINE) {
+		if(rcon_lvl > 2000) rcon_lvl = 2000;
+		else if(rcon_lvl < 0) rcon_lvl = 0;
+	
+		#ifndef OFFLINE
 			cmd.setConnection(&con);
-			string com = "UPDATE engVars SET val = " + to_string(rconLvl) + " WHERE name = 'rconLvl'";
+			std::string com = "UPDATE engVars SET val = " + std::to_string(rcon_lvl) + " WHERE name = 'rcon_lvl'";
 			cmd.setCommandText(com.c_str());
 			cmd.Execute();
 			con.Commit();
-		}
+		#endif
 		change = true;
 	}
-  	if(keyIn == 'x') {                                                  //Put here key inputs not specific to a module
+  	if(key_in == 'x') {                                                  //Put here key inputs not specific to a module
 		if(module[findByName("HabitatReactor")].getTemp() >= 81) {
 			module[findByName("HabitatReactor")].setPowered(true);
 			bus[0].power();
@@ -275,7 +273,7 @@ bool update(char keyIn) {
 			change = true;
 		}
 	}
-	else if(keyIn == '!') {
+	else if(key_in == '!') {
 		if(mode == electricity)
 			mode = temperature;
 		else if(mode == temperature)
@@ -283,51 +281,51 @@ bool update(char keyIn) {
 		else if(mode == cool)
 			mode = electricity;
 	}
-	else if(keyIn == '$') {
+	else if(key_in == '$') {
 		radPC -= 1;
 		if(radPC < 0) radPC = 0;
-		if(!OFFLINE) {
+		#ifndef OFFLINE
 			cmd.setConnection(&con);
-			string com = "UPDATE engVars SET val = " + to_string(radPC) + " WHERE name = 'radPC'";
+			std::string com = "UPDATE engVars SET val = " + std::to_string(radPC) + " WHERE name = 'radPC'";
 			cmd.setCommandText(com.c_str());
 			cmd.Execute();
 			con.Commit();
-		}
+		#endif
 		change = true;
 	}
-	else if(keyIn == '%') {
+	else if(key_in == '%') {
 		radPC += 1;
 		if(radPC > 100) radPC = 100;
-		if(!OFFLINE) {
+		#ifndef OFFLINE
 			cmd.setConnection(&con);
-			string com = "UPDATE engVars SET val = " + to_string(radPC) + " WHERE name = 'radPC'";
+			std::string com = "UPDATE engVars SET val = " + std::to_string(radPC) + " WHERE name = 'radPC'";
 			cmd.setCommandText(com.c_str());
 			cmd.Execute();
 			con.Commit();
-		}
+		#endif
 		change = true;
 	}
-	else if(keyMap.find(keyIn) != keyMap.end()) {								//If the input is part of the keymap
-		int keyVal = keyMap[keyIn];												//Assign an integer value based on the input
-		if(keyVal > 2) {														//If the key value is > 2 (Non-power source)
-			bus[module[keyVal].getBusNum()].power();                            //Check the power of the affected bus
-			module[keyVal].toggleWire();										//Toggle the wire
-			module[keyVal].power();												//Check the power of the module
+	else if(key_map.find(key_in) != key_map.end()) {								//If the input is part of the keymap
+		int key_val = key_map[key_in];												//Assign an integer value based on the input
+		if(key_val > 2) {														//If the key value is > 2 (Non-power source)
+			bus[module[key_val].getBusNum()].power();                            //Check the power of the affected bus
+			module[key_val].toggleWire();										//Toggle the wire
+			module[key_val].power();												//Check the power of the module
 		}
-		else if(keyVal <= 2) {													//Otherwise, (It is a power source)
-			int lastVal = 0;													//Initialize a variable called lastVal
-			module[keyVal].toggleWire();										//Toggle the power source wire (Don't check power yet)
-			module[keyVal].power();												//jk check power cause yeah (no idea what i was thinking here)
+		else if(key_val <= 2) {													//Otherwise, (It is a power source)
+			int last_val = 0;													//Initialize a variable called lastVal
+			module[key_val].toggleWire();										//Toggle the power source wire (Don't check power yet)
+			module[key_val].power();												//jk check power cause yeah (no idea what i was thinking here)
 			for(int i = 0; i < NUM_BUSES; i++) {								//For every bus
-				bool oldPower = bus[i].isPowered();								//Store their power state in a variable  
+				bool old_power = bus[i].isPowered();								//Store their power state in a variable  
 				bus[i].power();                                                 //Check to see if they are powered
-				if(oldPower != bus[i].isPowered()) {							//If their new powered value and the varaible are diferent
-					for(int j = lastVal; j != module.size() - 1; j++) {			//We need to update power states for everything on that bus
+				if(old_power != bus[i].isPowered()) {							//If their new powered value and the varaible are diferent
+					for(int j = last_val; j != module.size() - 1; j++) {			//We need to update power states for everything on that bus
 						if(module[j].getBusNum() == i) {                        //This uses lastVal, so we don't make unnessecary comparisons
-							module[keyVal].power();
+							module[key_val].power();
 						}
 						else {
-							lastVal = j;                                        //Setting lastVal to j, so we know that the next bus has module starting at this number
+							last_val = j;                                        //Setting lastVal to j, so we know that the next bus has module starting at this number
 							break;     
 						}     
 					}            
@@ -355,46 +353,47 @@ bool update(char keyIn) {
 					bus[module[i].getBusNum()].setWatts(bus[module[i].getBusNum()].getWatts() + (module[i].getWatts() * (1/EFFICIENCY)));  //Return the spent watts
 			}
 		}
-		if(!OFFLINE && (module[i].getTemp() != module[i].getOldTemp() || module[i].getWire() != module[i].getOldWire() || module[i].isPowered() != module[i].getOldPowered() || module[i].getStatus() != module[i].getOldStatus())) {
-			module[i].setOldTemp(module[i].getTemp());
-			module[i].setOldWire(module[i].getWire());
-			module[i].setOldPowered(module[i].isPowered());
-			module[i].setOldStatus(module[i].getStatus());
-			updateDatabase(module[i]);
-		}
+		#ifndef OFFLINE
+			if((module[i].getTemp() != module[i].getOldTemp() || module[i].getWire() != module[i].getOldWire() || module[i].isPowered() != module[i].getOldPowered() || module[i].getStatus() != module[i].getOldStatus())) {
+				module[i].setOldTemp(module[i].getTemp());
+				module[i].setOldWire(module[i].getWire());
+				module[i].setOldPowered(module[i].isPowered());
+				module[i].setOldStatus(module[i].getStatus());
+				updateDatabase(module[i]);
+			}
+		#endif
 	}
 	return change;
 }
 
 void displayModule(Module m) {
-	//masked_blit(bmp, buffer, x, y, 0, 0, bmp->w, bmp->h);
-	string stats;
+	masked_blit(m.getSprite(m.getStatus()), buffer, 0, 0, m.getX(), m.getY(), m.getSprite(m.getStatus())->w, m.getSprite(m.getStatus())->h);
+	std::string stats;
 	switch(mode) {
 		case electricity:
 			if(m.getTruncName() == "RadiationShield1" || m.getTruncName() == "RadiationShield2")
-				stats = m.getName() + " Watts: " + to_string(m.getWatts() * m.isPowered() * radPC);
+				stats = std::to_string(int(m.getWatts() * m.isPowered() * radPC)) + "W";
 			else 
-				stats = m.getName() + " Watts: " + to_string(m.getWatts() * m.isPowered());
+				stats = std::to_string(int(m.getWatts() * m.isPowered())) + "W";
 			break;
 		case temperature:
-			stats = m.getName() + " Temp: " + to_string(m.getTemp());
+			stats = std::to_string(m.getTemp());
 			break;
 		case cool:
-			//stats = name + " Wire: " + to_string(wire) + " Powered: " + to_string(powered) + " Temp: " + to_string(temp) + " ID: " + to_string(id) + " Status: " + to_string((int)status);
+			//stats = name + " Wire: " + std::to_string(wire) + " Powered: " + std::to_string(powered) + " Temp: " + std::to_string(temp) + " ID: " + std::to_string(id) + " Status: " + std::to_string((int)status);
 			break;
 	}
-	rectfill(buffer, m.getX(), m.getY(), m.getX() + 400, m.getY() + 20, makecol(255 * (m.getStatus() == destroyed || m.getStatus() == warning), 255 * (m.getStatus() == normal || m.getStatus() == warning), 0));
-	textprintf_ex(buffer, font, m.getX() + 4, m.getY() + 4, makecol(255, 255, 255), -1, stats.c_str());
+	textprintf_ex(buffer, font, m.getX() + ((m.getSprite(m.getStatus())->w - text_length(font, stats.c_str())) / 2), m.getY() + ((m.getSprite(m.getStatus())->h - text_height(font)) / 2), makecol(255, 255, 255), -1, stats.c_str());
 }
 
 void displayBus(Bus b) {
 	//		string stats = "BUS ";
-	//		stats += to_string(busNum + 1);
+	//		stats += std::to_string(busNum + 1);
 	//		stats += " STATISTICS";
 	//		int width = (80 - stats.length()) / 2;
 	//		for(int i = 0; i < width; i++) //cout << " ";
 	//		cout << stats << endl;
-	//		if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rconLvl << endl;
+	//		if(busNum == 0) cout << "RADIATION SHIELD PERCENTAGE: " << radPC << " REACTOR CONTAINMENT LEVELS: " << rcon_lvl << endl;
 	//		cout << "POWERED: " << powered << " WATTS: " << watts << "W";
 	//		if(source != -1) cout << " POWER SOURCE: " << module[source].name;
 	//		else cout << " POWER SOURCE: NOT POWERED";
@@ -406,7 +405,7 @@ void displayBus(Bus b) {
 	//		}
 	//		else cout << "NOT POWERED" << endl << endl;
 	//		textprintf_ex(screen, font, 100, 100, makecol(255, 255, 255), makecol(0, 0, 0), stats.c_str());
-	//		stats = "RADIATION SHIELD PERCENTAGE: " + to_string(radPC) + " REACTOR CONTAINMENT LEVELS: " + to_string(rconLvl);
+	//		stats = "RADIATION SHIELD PERCENTAGE: " + std::to_string(radPC) + " REACTOR CONTAINMENT LEVELS: " + std::to_string(rcon_lvl);
 	//		textprintf_ex(screen, font, 100, 110, makecol(255, 255, 255), makecol(0, 0, 0), stats.c_str());
 	//		if(source != -1) stats = "POWER SOURCE: " + module[source].name;
 	//		else stats = "POWER SOURCE: NOT POWERED";
@@ -418,24 +417,51 @@ void displayBus(Bus b) {
 		else 
 			break;
 	}
-	displayModule(module[0]);
-	displayModule(module[1]);
-	displayModule(module[2]);
+	if(b.getSource() != -1) 
+		displayModule(module[b.getSource()]);
 }
 
-int findByName(string fName) {
+void draw() {
+	clear_to_color(buffer, makecol(0, 0, 0));
+	displayBus(bus[0]);
+	blit(buffer, screen, 0, 0, 0, 0, buffer->w, buffer->h);
+}
+
+int findByName(std::string fName) {
 	for(int i = 0; i < NUM_MODULES; i++) 
 		if(module[i].getTruncName() == fName) 
 			return i;         
-	cout << "Cannot find module with name " << fName << ", please contact your local adminispencer" << endl;
+	std::cout << "Cannot find module with name " << fName << ", please contact your local adminispencer" << std::endl;
 	system("pause");
 	exit(1);
 }
 
 void updateDatabase(Module m) {
-	string cmdText = "UPDATE eng SET temp = " + to_string(m.getTemp()) + ", wire = " + to_string(m.getWire()) + ", powered = " + to_string(m.isPowered()) + ", status = " + to_string(m.getStatus()) + " WHERE name = '" + m.getTruncName() + "'";
+	std::string cmd_text = "UPDATE eng SET temp = " + std::to_string(m.getTemp()) + ", wire = " + std::to_string(m.getWire()) + ", powered = " + std::to_string(m.isPowered()) + ", status = " + std::to_string(m.getStatus()) + ", watts = " + std::to_string(m.getWatts()) + " WHERE name = '" + m.getTruncName() + "'";
 	cmd.setConnection(&con);
-	cmd.setCommandText(cmdText.c_str());
+	cmd.setCommandText(cmd_text.c_str());
 	cmd.Execute();
 	con.Commit();
+}
+
+void updateFromDatabase(int update_mode) {
+	if(update_mode) {
+		for(int i = 0; i < module.size(); ++i) {
+			std::string cmd_text = "SELECT name, truncName, thresh1, thresh2, temp, wire, powered, status FROM eng WHERE id = " + module[i].getName();
+			cmd.setConnection(&con);
+			cmd.setCommandText(cmd_text.c_str());
+			cmd.Execute();
+			con.Commit();
+			while(cmd.FetchNext()) {
+				module[i].setName((std::string)cmd.Field("name").asString());
+				module[i].setTruncName((std::string)cmd.Field("truncName").asString());
+				module[i].setThresh1((float)cmd.Field("thresh1").asDouble());
+				module[i].setThresh2((float)cmd.Field("thresh2").asDouble());
+				module[i].setTemp((float)cmd.Field("temp").asDouble());
+				module[i].setWire(cmd.Field("wire").asBool());
+				module[i].setPowered(cmd.Field("powered").asBool());
+				module[i].setStatus((Status)(int)cmd.Field("status").asLong());
+			}
+		}
+	}
 }

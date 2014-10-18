@@ -6,13 +6,13 @@
 #pragma comment(lib, "sqlapi.lib")		//Link to the SQL API
 #pragma comment(lib, "alld.lib")		//Link to the Allegro graphics engine
 
-#define NUM_MODULES 18
+#define NUM_MODULES 17
 #define NUM_BUSES 3
 #define EFFICIENCY 0.99
 #define PRIMARY_BUS_WATTS 2500000		//The default number of watts on the primary bus
 #define SECONDARY_BUS_WATTS 10000		//The default number of watts on the secondary bus
 #define PRIMARY_HEAT_RATIO 100000		//Bigger this is = Smaller increments in which heat goes up
-#define PRIMARY_COOLING_BASELINE 1		//Bigger this is = Larger temperature reductions every tick (1 tick = dTime milliseconds, assigned in the main function)
+#define PRIMARY_COOLING_BASELINE 1		//Bigger this is = Larger temperature reductions every tick (1 tick = d_time milliseconds, assigned in the main function)
 #define SECONDARY_HEAT_RATIO 50000
 #define SECONDARY_COOLING_BASELINE 0.5
 #define TERNARY_HEAT_RATIO 10000

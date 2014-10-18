@@ -2,7 +2,6 @@
 #define MODULE_H_
 
 #include <allegro.h>
-#include <iostream>
 #include <string>
 #include "main.h"
 
@@ -27,15 +26,18 @@ class Module {
 		float oldTemp;
 		Status oldStatus;	
 		Coolant oldCoolant;	//These are the things sent over SQL
-		BITMAP *bmp;		//The bitmap to be drawn for this
+		BITMAP *sprite[3];		//The bitmap to be drawn for this
 		
 	public:
 		//Constructors
 		Module();
 		Module(int a);
-		Module(std::string a, std::string b, int c, float d);
-		Module(std::string a, std::string b, int c, int d, float e);
-
+		Module(std::string, std::string, int, float);
+		Module(std::string, std::string, int, int, float);
+		Module(std::string, std::string, int, int, float, int);
+		Module(std::string, std::string, int, int, float, int, int);
+		Module(std::string, std::string, int, int, float, int, int, int);
+		
 		//Accessors
 		std::string getName() { return name; }
 		std::string getTruncName() { return truncName; }
@@ -55,7 +57,8 @@ class Module {
 		Coolant getOldCoolant() { return oldCoolant; }
 		Status getStatus() { return status; }
 		Status getOldStatus() { return oldStatus; }
-		
+		BITMAP *getSprite(int a) { return sprite[a]; }
+
 		//Mutators
 		float heat();
 		void power();
@@ -64,8 +67,12 @@ class Module {
 		void setOldWire(bool a) { oldWire = a; } 
 		void setTemp(float a) { temp = a; }
 		void setOldTemp(float a) { oldTemp = a; }
+		void setThresh1(float a) { thresh1 = a; }
+		void setThresh2(float a) { thresh2 = a; }
 		void setPowered(bool a) { powered = a; }
 		void setOldPowered(bool a) { oldPowered = a; }
+		void setName(std::string a) { name = a; }
+		void setTruncName(std::string a) { truncName = a; }
 		void setStatus(Status a) { status = a; }
 		void setOldStatus(Status a) { oldStatus = a; }
 };
