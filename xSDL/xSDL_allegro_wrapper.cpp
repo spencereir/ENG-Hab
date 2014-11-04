@@ -58,7 +58,8 @@ int text_length(TTF_Font *f, const char *text){
 		f = font;
 	}
 	int w = 0;
-	TTF_SizeText(f,"Hello World!",&w, NULL);
+	TTF_SizeText(f,text,&w, NULL);
+	
 	return w;
 }
 
