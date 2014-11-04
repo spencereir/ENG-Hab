@@ -32,7 +32,7 @@ namespace xSDL{
 		
 		version::log("SDL2", version::sdl_compiled, version::sdl_linked);
 
-		#ifndef WITHOUT_AUDIO_H_
+		#ifndef WITHOUT_SDL_MIXER_H_
 			if (Mix_Init(/*MIX_INIT_FLAC | MIX_INIT_MOD | MIX_INIT_MP3 |*/ MIX_INIT_OGG) == -1){
 				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
 				return false;
@@ -43,7 +43,7 @@ namespace xSDL{
 			
 			version::log("SDL_mixer", version::mixer_compiled, version::mixer_linked);
 		#endif
-		#ifndef WITHOUT_TEXTURE_H_
+		#ifndef WITHOUT_SDL_IMAGE_H_
 			if (IMG_Init(IMG_INIT_PNG) == -1){
 				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
 				return false;
@@ -54,7 +54,7 @@ namespace xSDL{
 			
 			version::log("SDL_image", version::image_compiled, version::image_linked);
 		#endif
-		#ifndef WITHOUT_FONT_H_
+		#ifndef WITHOUT_SDL_FONT_H_
 			if (TTF_Init() == -1){
 				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
 				return false;
@@ -65,7 +65,7 @@ namespace xSDL{
 
 			version::log("SDL_ttf", version::ttf_compiled, version::ttf_linked);
 		#endif
-		#ifndef WITHOUT_NET_H_
+		#ifndef WITHOUT_SDL_NET_H_
 			if (SDLNet_Init()==-1) {
 				SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, SDL_GetError());
 				return false;
@@ -88,16 +88,16 @@ namespace xSDL{
 		delete version::net_compiled;
 		
 		//Quit SDL
-		#ifndef WITHOUT_NET_H_
+		#ifndef WITHOUT_SDL_NET_H_
 			SDLNet_Quit();
 		#endif
-		#ifndef WITHOUT_FONT_H_
+		#ifndef WITHOUT_SDL_FONT_H_
 			TTF_Quit();
 		#endif
-		#ifndef WITHOUT_TEXTURE_H_
+		#ifndef WITHOUT_SDL_IMAGE_H_
 			IMG_Quit();
 		#endif
-		#ifndef WITHOUT_AUDIO_H_
+		#ifndef WITHOUT_SDL_MIXER_H_
 			Mix_Quit();
 		#endif
 		SDL_Quit();
@@ -133,3 +133,45 @@ namespace xSDL{
 	}
 
 }
+void xSDL_Window::toggleFS(){
+	if (xSDL::isFullScreen(window)){
+		SDL_SetWindowFullscreen(window, 0);
+		xSDL::logInfo("SDL_SetWindowFullscreen","Now Windowed");
+	}else{
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+		xSDL::logInfo("SDL_SetWindowFullscreen","Now Fullscreen");
+	}
+}
+xSDL_Window::xSDL_Window(const char* title, int width, int height, bool screenState){
+	window = nullptr;
+	renderer = nullptr;
+	if (!xSDL::init()){
+		throw "Could not initialize SDL2";
+	}
+
+	window = SDL_CreateWindow(title, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, width, height, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
+	if (window == nullptr){
+		xSDL::logError("CreateWindow");
+		throw "Could not create window";
+	}
+
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (renderer == nullptr){
+		xSDL::logError("CreateRenderer");
+		throw "Could not create renderer";
+	}
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "nearest");  // make the scaled rendering look smoother.
+	SDL_RenderSetLogicalSize(renderer, width, height);
+	keyboardState = SDL_GetKeyboardState(NULL);
+
+	if (screenState){
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	}
+}
+
+xSDL_Window::~xSDL_Window(){
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	xSDL::quit();
+}
+

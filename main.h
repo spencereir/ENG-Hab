@@ -6,7 +6,7 @@
 #pragma comment(lib, "sqlapi.lib")		//Link to the SQL API
 #pragma comment(lib, "alld.lib")		//Link to the Allegro graphics engine
 
-#define NUM_MODULES 17
+#define NUM_MODULES 18
 #define NUM_BUSES 3
 #define EFFICIENCY 0.99
 #define PRIMARY_BUS_WATTS 2500000		//The default number of watts on the primary bus
@@ -44,5 +44,11 @@ int findByName(std::string name);
 #include <vector>
 #include "module.h"
 #include "bus.h"
+
+
+#include <iostream>				//Standard I/O
+#include <fstream>				//File I/O
+#include <string>				//C++ std::string manipulations
+#include <map>					//Maps to handle keyboard input
 
 #endif

@@ -23,22 +23,37 @@ contributor privilages on git, but please please pleease dont push to master unt
 that your fix works. I can create a branch for you while we delegate to QA (Is that a taskforce? That should be a taskforce)
 */
 
-#include <allegro.h>			//Graphics
-#include <winalleg.h>			//SYSTEMTIME
-#include <iostream>				//Standard I/O
-#include <fstream>				//File I/O
-#include <string>				//C++ std::string manipulations
-#include <map>					//Maps to handle keyboard input
-#include <SQLAPI.h>				//Database I/O
-#include "main.h"
+#include "xSDL/xSDL_bitmap.h"	//Graphics
+#include "xSDL/xSDL_allegro_wrapper.h"
 
-//#define OFFLINE 				//When this flag is set, the program is running in offline mode (Will not attempt to connect to Server)
+// Event Handler
+char processEvents(SDL_Window* window);
+
+// Window
+xSDL_Window *target_window;
+
+// fix godamn overwrite
+#define WIN32_LEAN_AND_MEAN
+#define BITMAP WINDOWS_BITMAP
+	#include <windows.h>
+#define WINDOWS_RGB(r,g,b)  ((COLORREF)(((BYTE)(r)|((WORD)((BYTE)(g))<<8))|(((DWORD)(BYTE)(b))<<16)))
+#undef BITMAP
+
+
+#define OFFLINE 				//When this flag is set, the program is running in offline mode (Will not attempt to connect to Server)
 //#define FULLSCREEN				//When this flag is set, the program will run in fullscreen mode. Otherwise, it will run in windowed mode. Fullscreen mode does not work on all computers
 
+#ifndef OFFLINE
+	#include <SQLAPI.h>				//Database I/O
+	SAConnection con;
+	SACommand cmd;
+#endif
+
+#include "main.h"
 std::vector<Module> module(NUM_MODULES, Module());
 std::vector<Bus> bus(NUM_BUSES, Bus());
-int radPC;				
-int rcon_lvl;				
+int radPC;
+int rcon_lvl;
 int update_id = 0;
 Mode mode;
 SYSTEMTIME t;						//The program's local time, used when updating
@@ -48,8 +63,6 @@ double time1;
 double time2;
 double d_time;
 std::string startType = "";
-SAConnection con;
-SACommand cmd;
 BITMAP *buffer;
 
 void displayModule(Module);
@@ -62,7 +75,7 @@ void updateFromDatabase(int);		//Read in the database. Mode 0 reads in piloting 
 int getUpdateID();					//Returns the current engineering update ID
 void comment();
 
-int main() {
+int main(int argc, char *argv[]){
 	#ifndef OFFLINE
 		std::ifstream inFile ("serverLocation.txt");
 		std::string serverComputer;
@@ -77,13 +90,13 @@ int main() {
 			system("pause");
 			exit(1);
 		}
+		int radPC = 0;
+		int rcon_lvl = 0;
 	#endif 
 
 	//Initialize all local variables
 	char in = ' ';                                              //Holds user input
 	d_time = 500;												//Number of miliseconds between updates
-	int radPC = 0;
-	int rcon_lvl = 0;
 	std::string input = "";
 
 	//Initialize the Key Input map
@@ -106,44 +119,47 @@ int main() {
 	key_map['n'] = 16;																			//N = Engine Accelerator 4
 	key_map['o'] = 17;																			//O = Ion Engine 4
 
-	allegro_init();
-	set_color_depth(32);
 	
-	#ifdef 
-		set_gfx_mode(GFX_AUTODETECT_FULLSCREEN, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
+	target_window = new xSDL_Window("ENG-hab", SCREEN_WIDTH, SCREEN_HEIGHT,
+	#ifdef FULLSCREEN
+		true
 	#else
-		set_gfx_mode(GFX_AUTODETECT_WINDOWED, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
+		false
 	#endif
+	);
 	
-	install_keyboard();
-	buffer = create_bitmap(SCREEN_W, SCREEN_H);
+	// install_keyboard();
+	// buffer = create_bitmap(SCREEN_W, SCREEN_H);
 
 	//Set up all the module information
-	module[0] = Module("Habitat Reactor", "HabitatReactor", 0, 0, 10000, 100, 100);
-	module[1] = Module("Fuel Cell", "FuelCell", 1, 10000);
-	module[2] = Module("Battery", "Battery", 2, 10000);
-	module[3] = Module("Radiation Shield 1", "RadiationShield1", 3, 10000);
-	module[4] = Module("Radiation Shield 2", "RadiationShield2", 4, 10000);
-	module[5] = Module("Artificial Gravity", "ArtificialGravity", 5, 10000);
-	module[6] = Module("Reactor Containment 1", "ReactorContainment1", 6, 5000);
-	module[7] = Module("Reactor Containment 2", "ReactorContainment2", 7, 5000);
-	module[8] = Module("RCS Pressure System", "RCSPressureSystem", 8, 5000);
-	module[9] = Module("That Other One", "ThatOtherOne", 9, 10000);
-	module[10] = Module("Engine Accelerator 1", "EngineAccelerator1", 10, 10000);
-	module[11] = Module("IonEngine1", "IonEngine1", 11, 10000);
-	module[12] = Module("Engine Accelerator 2", "EngineAccelerator2", 12, 10000);
-	module[13] = Module("IonEngine2", "IonEngine2", 13, 10000);
-	module[14] = Module("Engine Accelerator 3", "EngineAccelerator3", 14, 10000);
-	module[15] = Module("IonEngine3", "IonEngine3", 15, 10000);
-	module[16] = Module("Engine Accelerator 4", "EngineAccelerator4", 16, 10000);
-	module[17] = Module("IonEngine4", "IonEngine4", 17, 10000);
+	module[0] = Module("Habitat Reactor", "HabitatReactor", 0, 0, 10000, 100, 100, target_window->renderer);
+	module[1] = Module("Fuel Cell", "FuelCell", 1, 10000, target_window->renderer);
+	module[2] = Module("Battery", "Battery", 2, 10000, target_window->renderer);
+	module[3] = Module("Radiation Shield 1", "RadiationShield1", 3, 10000, target_window->renderer);
+	module[4] = Module("Radiation Shield 2", "RadiationShield2", 4, 10000, target_window->renderer);
+	module[5] = Module("Artificial Gravity", "ArtificialGravity", 5, 10000, target_window->renderer);
+	module[6] = Module("Reactor Containment 1", "ReactorContainment1", 6, 5000, target_window->renderer);
+	module[7] = Module("Reactor Containment 2", "ReactorContainment2", 7, 5000, target_window->renderer);
+	module[8] = Module("RCS Pressure System", "RCSPressureSystem", 8, 5000, target_window->renderer);
+	module[9] = Module("That Other One", "ThatOtherOne", 9, 10000, target_window->renderer);
+	module[10] = Module("Engine Accelerator 1", "EngineAccelerator1", 10, 10000, target_window->renderer);
+	module[11] = Module("IonEngine1", "IonEngine1", 11, 10000, target_window->renderer);
+	module[12] = Module("Engine Accelerator 2", "EngineAccelerator2", 12, 10000, target_window->renderer);
+	module[13] = Module("IonEngine2", "IonEngine2", 13, 10000, target_window->renderer);
+	module[14] = Module("Engine Accelerator 3", "EngineAccelerator3", 14, 10000, target_window->renderer);
+	module[15] = Module("IonEngine3", "IonEngine3", 15, 10000, target_window->renderer);
+	module[16] = Module("Engine Accelerator 4", "EngineAccelerator4", 16, 10000, target_window->renderer);
+	module[17] = Module("IonEngine4", "IonEngine4", 17, 10000, target_window->renderer);
 
-	textprintf_ex(screen, font, SCREEN_W / 2 - (text_length(font, "Press H to hot start or C to cold start") / 2), SCREEN_H / 2 - (text_height(font) / 2), makecol(255, 255, 255), makecol(0, 0, 0), "Press H to hot start or C to cold start");
-
+	clear_to_color(target_window->renderer, makecol(0, 0, 0));
+	textprintf_ex(target_window->renderer, NULL, SCREEN_WIDTH / 2 - (text_length(NULL, "Press H to hot start or C to cold start") / 2), SCREEN_HEIGHT / 2 - (text_height(NULL) / 2), makecol(255, 255, 255), NULL, "Press H to hot start or C to cold start");
+	SDL_RenderPresent(target_window->renderer);
+	std::cout << "a4";
 	while(startType == "") {
-		if(key[KEY_H])
+		SDL_PumpEvents();
+		if(target_window->keyboardState[SDL_SCANCODE_H])
 			startType = "h";
-		else if(key[KEY_C])
+		else if(target_window->keyboardState[SDL_SCANCODE_C])
 			startType = "c";
 	}
 
@@ -161,40 +177,19 @@ int main() {
 		system("PAUSE");
 		exit(1);     
 	}
-	
+
 	GetLocalTime(&t);
 	time1 = t.wMilliseconds + (t.wSecond * 1000);
 	do {
-		if(keypressed()) {
-			if(key[KEY_TAB]) 
-				in = '!';
-			else if(key[KEY_PGUP])
-				in = '@';
-			else if(key[KEY_PGDN])
-				in = '#';
-			else if(key[KEY_LEFT])
-				in = '$';
-			else if(key[KEY_RIGHT])
-				in = '%';
-			else if(key[KEY_Q] || key[KEY_ESC])
-				exit(EXIT_SUCCESS);
-			else 
-				in = readkey();
-			
-			input += in;
-			clear_keybuf();
-			rest(10);
-		}
-		else 
-			in = ' ';
+		in = processEvents(target_window->window);
+		input += in;
 		
 		bool change = update(in);
-		if(change) 
+		if(change)
 			draw();
 	} while(true);
 	return 0;
 }
-END_OF_MAIN()
 
 bool update(char key_in) {         
 	bool change = false;      
@@ -328,7 +323,7 @@ bool update(char key_in) {
 }
 
 void displayModule(Module m) {
-	masked_blit(m.getSprite(m.getStatus()), buffer, 0, 0, m.getX(), m.getY(), m.getSprite(m.getStatus())->w, m.getSprite(m.getStatus())->h);
+	masked_blit(m.getSprite(m.getStatus()), target_window->renderer, 0, 0, m.getX(), m.getY(), m.getSprite(m.getStatus())->w, m.getSprite(m.getStatus())->h);
 	std::string stats;
 	switch(mode) {
 		case electricity:
@@ -344,7 +339,7 @@ void displayModule(Module m) {
 			//stats = name + " Wire: " + std::to_string(wire) + " Powered: " + std::to_string(powered) + " Temp: " + std::to_string(temp) + " ID: " + std::to_string(id) + " Status: " + std::to_string((int)status);
 			break;
 	}
-	textprintf_ex(buffer, font, m.getX() + ((m.getSprite(m.getStatus())->w - text_length(font, stats.c_str())) / 2), m.getY() + ((m.getSprite(m.getStatus())->h - text_height(font)) / 2), makecol(255, 255, 255), -1, stats.c_str());
+	textprintf_ex(target_window->renderer, NULL, m.getX() + ((m.getSprite(m.getStatus())->w - text_length(NULL, stats.c_str())) / 2), m.getY() + ((m.getSprite(m.getStatus())->h - text_height(NULL)) / 2), makecol(255, 255, 255), NULL, stats.c_str());
 }
 
 void displayBus(Bus b) {
@@ -383,9 +378,9 @@ void displayBus(Bus b) {
 }
 
 void draw() {
-	clear_to_color(buffer, makecol(0, 0, 0));
+	clear_to_color(target_window->renderer, makecol(0, 0, 0));
 	displayBus(bus[0]);
-	blit(buffer, screen, 0, 0, 0, 0, buffer->w, buffer->h);
+	SDL_RenderPresent(target_window->renderer);
 }
 
 int findByName(std::string fName) {
@@ -399,30 +394,34 @@ int findByName(std::string fName) {
 
 void updateDatabase(Module m) {
 	std::string cmd_text = "UPDATE eng SET temp = " + std::to_string(m.getTemp()) + ", wire = " + std::to_string(m.getWire()) + ", powered = " + std::to_string(m.isPowered()) + ", status = " + std::to_string(m.getStatus()) + ", watts = " + std::to_string(m.getWatts()) + " WHERE name = '" + m.getTruncName() + "'";
-	cmd.setConnection(&con);
-	cmd.setCommandText(cmd_text.c_str());
-	cmd.Execute();
-	con.Commit();
+	#ifndef OFFLINE
+		cmd.setConnection(&con);
+		cmd.setCommandText(cmd_text.c_str());
+		cmd.Execute();
+		con.Commit();
+	#endif
 }
 
 void updateFromDatabase(int update_mode) {
 	if(update_mode) {
 		for(int i = 0; i < module.size(); ++i) {
 			std::string cmd_text = "SELECT name, truncName, thresh1, thresh2, temp, wire, powered, status FROM eng WHERE id = " + module[i].getName();
-			cmd.setConnection(&con);
-			cmd.setCommandText(cmd_text.c_str());
-			cmd.Execute();
-			con.Commit();
-			while(cmd.FetchNext()) {
-				module[i].setName((std::string)cmd.Field("name").asString());
-				module[i].setTruncName((std::string)cmd.Field("truncName").asString());
-				module[i].setThresh1((float)cmd.Field("thresh1").asDouble());
-				module[i].setThresh2((float)cmd.Field("thresh2").asDouble());
-				module[i].setTemp((float)cmd.Field("temp").asDouble());
-				module[i].setWire(cmd.Field("wire").asBool());
-				module[i].setPowered(cmd.Field("powered").asBool());
-				module[i].setStatus((Status)(int)cmd.Field("status").asLong());
-			}
+			#ifndef OFFLINE
+				cmd.setConnection(&con);
+				cmd.setCommandText(cmd_text.c_str());
+				cmd.Execute();
+				con.Commit();
+				while(cmd.FetchNext()) {
+					module[i].setName((std::string)cmd.Field("name").asString());
+					module[i].setTruncName((std::string)cmd.Field("truncName").asString());
+					module[i].setThresh1((float)cmd.Field("thresh1").asDouble());
+					module[i].setThresh2((float)cmd.Field("thresh2").asDouble());
+					module[i].setTemp((float)cmd.Field("temp").asDouble());
+					module[i].setWire(cmd.Field("wire").asBool());
+					module[i].setPowered(cmd.Field("powered").asBool());
+					module[i].setStatus((Status)(int)cmd.Field("status").asLong());
+				}
+			#endif
 		}
 	}
 }

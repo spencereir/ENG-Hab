@@ -1,7 +1,7 @@
 #ifndef MODULE_H_
 #define MODULE_H_
 
-#include <allegro.h>
+#include "xSDL/xSDL_bitmap.h"
 #include <string>
 #include "main.h"
 
@@ -31,12 +31,12 @@ class Module {
 	public:
 		//Constructors
 		Module();
-		Module(int a);
-		Module(std::string, std::string, int, float);
-		Module(std::string, std::string, int, int, float);
-		Module(std::string, std::string, int, int, float, int);
-		Module(std::string, std::string, int, int, float, int, int);
-		Module(std::string, std::string, int, int, float, int, int, int);
+		Module(int a, SDL_Renderer* context);
+		Module(std::string, std::string, int, float, SDL_Renderer* context);
+		Module(std::string, std::string, int, int, float, SDL_Renderer* context);
+		Module(std::string, std::string, int, int, float, int, SDL_Renderer* context);
+		Module(std::string, std::string, int, int, float, int, int, SDL_Renderer* context);
+		Module(std::string, std::string, int, int, float, int, int, int, SDL_Renderer* context);
 		
 		//Accessors
 		std::string getName() { return name; }

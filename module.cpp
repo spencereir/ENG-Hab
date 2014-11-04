@@ -7,7 +7,7 @@ extern int rcon_lvl;
 
 Module::Module() {
 	name = "Default";
-	truncName = "Default";
+//	truncName = "Default";
 	wire = false;
 	powered = false;
 	id = 0;
@@ -21,7 +21,7 @@ Module::Module() {
 	y = 25 * id;
 }
 
-Module::Module(int a) {
+Module::Module(int a, SDL_Renderer* context) {
 	name = "Default";
 	truncName = "Default";
 	wire = false;
@@ -35,12 +35,12 @@ Module::Module(int a) {
 	status = normal;
 	x = 0;
 	y = 25 * id;
-	sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-	sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-	sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+	sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+	sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+	sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 }
 
-Module::Module(std::string a, std::string b, int c, float d) { 
+Module::Module(std::string a, std::string b, int c, float d, SDL_Renderer* context) {
 	name = a; 
 	truncName = b; 
 	wire = false;
@@ -54,12 +54,12 @@ Module::Module(std::string a, std::string b, int c, float d) {
 	status = normal;
 	x = 0;
 	y = 25 * id;
-	sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-	sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-	sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+	sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+	sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+	sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 }
 
-Module::Module(std::string a, std::string b, int c, int d, float e) { 
+Module::Module(std::string a, std::string b, int c, int d, float e, SDL_Renderer* context) {
 	name = a; 
 	truncName = b; 
 	wire = false;
@@ -73,12 +73,12 @@ Module::Module(std::string a, std::string b, int c, int d, float e) {
 	status = normal;
 	x = 0;
 	y = 25 * id;
-	sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-	sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-	sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+	sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+	sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+	sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 }
 
-Module::Module(std::string a, std::string b, int c, int d, float e, int g) { 
+Module::Module(std::string a, std::string b, int c, int d, float e, int g, SDL_Renderer* context) {
 	name = a; 
 	truncName = b; 
 	wire = false;
@@ -93,9 +93,9 @@ Module::Module(std::string a, std::string b, int c, int d, float e, int g) {
 	x = 0;
 	y = 25 * id;
 	if(g == 1) {
-		sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-		sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-		sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+		sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+		sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+		sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 	}
 	else if(g == 2) {
 		//Double modules (RCON, RADSHIELD)
@@ -105,7 +105,7 @@ Module::Module(std::string a, std::string b, int c, int d, float e, int g) {
 	}
 }
 
-Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h) { 
+Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h, SDL_Renderer* context) {
 	name = a; 
 	truncName = b; 
 	wire = false;
@@ -119,12 +119,12 @@ Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h
 	status = normal;
 	x = g;
 	y = h;
-	sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-	sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-	sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+	sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+	sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+	sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 }
 
-Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h, int k) { 
+Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h, int k, SDL_Renderer* context) {
 	name = a; 
 	truncName = b; 
 	wire = false;
@@ -139,9 +139,9 @@ Module::Module(std::string a, std::string b, int c, int d, float e, int g, int h
 	x = h;
 	y = k;
 	if(g == 1) {
-		sprite[0] = load_bitmap("singleModuleNormal.bmp", NULL);
-		sprite[1] = load_bitmap("singleModuleWarning.bmp", NULL);
-		sprite[2] = load_bitmap("singleModuleDestroyed.bmp", NULL);
+		sprite[0] = load_bitmap("res/singleModuleNormal.bmp", context);
+		sprite[1] = load_bitmap("res/singleModuleWarning.bmp", context);
+		sprite[2] = load_bitmap("res/singleModuleDestroyed.bmp", context);
 	}
 	else if(g == 2) {
 		//Double modules (RCON, RADSHIELD)

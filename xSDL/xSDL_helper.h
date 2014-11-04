@@ -1,9 +1,8 @@
-/*
 #define WITHOUT_SDL_NET_H_
-#define WITHOUT_SDL_TTF_H_
-#define WITHOUT_SDL_IMAGE_H_
+// #define WITHOUT_SDL_TTF_H_
+// #define WITHOUT_SDL_IMAGE_H_
 #define WITHOUT_SDL_MIXER_H_
-*/
+
 #ifndef xSDL_HELPER_H_
 	#define xSDL_HELPER_H_
 	
@@ -51,5 +50,15 @@
 			void log(const char* name, const SDL_version *version_compiled, const SDL_version *version_linked);
 		}
 	}
+	class xSDL_Window{
+		public:
+			SDL_Window *window;
+			SDL_Renderer *renderer;
+			const Uint8 *keyboardState;
+			void toggleFS();
+			xSDL_Window(const char* title, int width, int height, bool screenState);
+			~xSDL_Window();
+	};
+
 
 #endif
