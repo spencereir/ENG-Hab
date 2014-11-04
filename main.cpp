@@ -179,18 +179,21 @@ int main(int argc, char *argv[]){
 
 	GetLocalTime(&t);
 	time1 = t.wMilliseconds + (t.wSecond * 1000);
-	std::cout << "Starting loop" << std::endl;
 	do {
-	    std::cout << "Each Begin" << std::endl;
-    	in = processEvents(target_window->window);
-        std::cout << "Done processing" << std::endl;
+	    try{
+    		in = processEvents(target_window->window);
+    	}catch (int e){
+    		if (e == 100){
+				break;
+    		}
+    	}
     	input += in;
 
     	bool change = update(in);
-        std::cout << "Done Update" << std::endl;
-    	if(change)
+    	if(change){
+        	std::cout << "Draw Update!" << std::endl;
     		draw();
-        std::cout << "Done Draw" << std::endl;
+    	}
 	} while(true);
 	return 0;
 }
