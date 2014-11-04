@@ -7,7 +7,7 @@ extern int rcon_lvl;
 
 Module::Module() {
 	name = "Default";
-//	truncName = "Default";
+	truncName = "Default";
 	wire = false;
 	powered = false;
 	id = 0;
