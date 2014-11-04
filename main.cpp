@@ -154,7 +154,6 @@ int main(int argc, char *argv[]){
 	clear_to_color(target_window->renderer, makecol(0, 0, 0));
 	textprintf_ex(target_window->renderer, NULL, SCREEN_WIDTH / 2 - (text_length(NULL, "Press H to hot start or C to cold start") / 2), SCREEN_HEIGHT / 2 - (text_height(NULL) / 2), makecol(255, 255, 255), NULL, "Press H to hot start or C to cold start");
 	SDL_RenderPresent(target_window->renderer);
-	std::cout << "a4";
 	while(startType == "") {
 		SDL_PumpEvents();
 		if(target_window->keyboardState[SDL_SCANCODE_H])
@@ -180,13 +179,18 @@ int main(int argc, char *argv[]){
 
 	GetLocalTime(&t);
 	time1 = t.wMilliseconds + (t.wSecond * 1000);
+	std::cout << "Starting loop" << std::endl;
 	do {
-		in = processEvents(target_window->window);
-		input += in;
-		
-		bool change = update(in);
-		if(change)
-			draw();
+	    std::cout << "Each Begin" << std::endl;
+    	in = processEvents(target_window->window);
+        std::cout << "Done processing" << std::endl;
+    	input += in;
+
+    	bool change = update(in);
+        std::cout << "Done Update" << std::endl;
+    	if(change)
+    		draw();
+        std::cout << "Done Draw" << std::endl;
 	} while(true);
 	return 0;
 }
