@@ -39,5 +39,5 @@ CHANGELOG
 10/3/14  - Hey past me, you are dumb. I did classes for real now and its better
 10/4/14  - After many many many many hours of work, I've finished the whole classes thing. It's now so much easier to read overall.
 10/18/14 - Added ifndef guards to allow for machines without SQLAPI to run the offline mode
-
+11/10/14 - SDL2 Support, removed Alelgro
 */

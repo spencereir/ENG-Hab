@@ -1,5 +1,6 @@
 #include "xSDL/xSDL_helper.h"
 #include <string>
+// prototyped in main
 char processEvents(SDL_Window* window){
 	SDL_Event current_event;
 	while(SDL_PollEvent(&current_event)){
