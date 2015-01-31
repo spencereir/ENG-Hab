@@ -13,7 +13,7 @@
  #       #  # # #  ### # #  # # #      #      #####  # #  # # #  ### 
  #       #   ## #    # # #   ## #      #      #   #  # #   ## #    # 
  ####### #    #  ####  # #    # ###### ###### #    # # #    #  ####
-							Hab Edition
+			    Hab Edition
                        By Spencer Whitehead
 					  
 If you change anything here or find anything wrong with your changes, please record everything in the Changelog and
@@ -31,10 +31,10 @@ Finished - Fix a bug that causes bus to still read as having power on it after t
       NF - Fix a bug that causes the user to still be able to use bus 1 as if it is powered so long as they do not release a key (This is probably true for bus 2 also, cannot test yet)
       NF - Fix a bug that causes the bus watt values to fluctuate while modifying radiation shields (I have NO idea what causes this, kudos if you solve it)
       NF - Find out why sources other than Hab Reactor cant power primary bus
-	  NF - Maybe find a better way to set up bitmaps than passing x and y to all of them? Excepting this, make good X and Y values. The overeall layout of ENG should stay the same so there is as little confusion as possible
-	 WIP - Create images and make it draw things that aren't just text
+      NF - Maybe find a better way to set up bitmaps than passing x and y to all of them? Excepting this, make good X and Y values. The overeall layout of ENG should stay the same so there is as little confusion as possible
+     WIP - Create images and make it draw things that aren't just text
 Finished - Make a debouncer for the keys
-	  NF - Make coolants do stuff
+      NF - Make coolants do stuff
 Finished - Clean up class functions using seperate source files
      WIP - Use a unique ID to track when the database was last changed
 
@@ -60,6 +60,7 @@ CHANGELOG
 10/3/14  - Hey past me, you are dumb. I did classes for real now and its better
 10/4/14  - After many many many many hours of work, I've finished the whole classes thing. It's now so much easier to read overall.
 10/18/14 - Added ifndef guards to allow for machines without SQLAPI to run the offline mode
+01/31/15 - Started working on this again. Cool idea: Have every module be a draggable borderless window that is connected to the (static) buses by a FF12 style arc
 */
 
 #include <allegro.h>			//Graphics
@@ -86,7 +87,7 @@ std::map<char, int> key_map;
 double time1;
 double time2;
 double d_time;
-std::string startType = "";
+char startType = "";
 SAConnection con;
 SACommand cmd;
 BITMAP *buffer;
@@ -158,6 +159,7 @@ int main() {
 	buffer = create_bitmap(SCREEN_W, SCREEN_H);
 
 	//Set up all the module information
+	//TODO: Maybe make this read from the database?
 	module[0] = Module("Habitat Reactor", "HabitatReactor", 0, 0, 10000, 100, 100);
 	module[1] = Module("Fuel Cell", "FuelCell", 1, 10000);
 	module[2] = Module("Battery", "Battery", 2, 10000);
@@ -167,67 +169,70 @@ int main() {
 	module[6] = Module("Reactor Containment 1", "ReactorContainment1", 6, 5000);
 	module[7] = Module("Reactor Containment 2", "ReactorContainment2", 7, 5000);
 	module[8] = Module("RCS Pressure System", "RCSPressureSystem", 8, 5000);
-	module[9] = Module("That Other One", "ThatOtherOne", 9, 10000);
-	module[10] = Module("Engine Accelerator 1", "EngineAccelerator1", 10, 10000);
-	module[11] = Module("IonEngine1", "IonEngine1", 11, 10000);
-	module[12] = Module("Engine Accelerator 2", "EngineAccelerator2", 12, 10000);
-	module[13] = Module("IonEngine2", "IonEngine2", 13, 10000);
-	module[14] = Module("Engine Accelerator 3", "EngineAccelerator3", 14, 10000);
-	module[15] = Module("IonEngine3", "IonEngine3", 15, 10000);
-	module[16] = Module("Engine Accelerator 4", "EngineAccelerator4", 16, 10000);
-	module[17] = Module("IonEngine4", "IonEngine4", 17, 10000);
+	module[9] = Module("Engine Accelerator 1", "EngineAccelerator1", 9, 10000);
+	module[10] = Module("IonEngine1", "IonEngine1", 10, 10000);
+	module[11] = Module("Engine Accelerator 2", "EngineAccelerator2", 11, 10000);
+	module[12] = Module("IonEngine2", "IonEngine2", 12, 10000);
+	module[13] = Module("Engine Accelerator 3", "EngineAccelerator3", 13, 10000);
+	module[14] = Module("IonEngine3", "IonEngine3", 14, 10000);
+	module[15] = Module("Engine Accelerator 4", "EngineAccelerator4", 15, 10000);
+	module[16] = Module("IonEngine4", "IonEngine4", 16, 10000);
 
 	textprintf_ex(screen, font, SCREEN_W / 2 - (text_length(font, "Press H to hot start or C to cold start") / 2), SCREEN_H / 2 - (text_height(font) / 2), makecol(255, 255, 255), makecol(0, 0, 0), "Press H to hot start or C to cold start");
 
-	while(startType == "") {
-		if(key[KEY_H])
-			startType = "h";
-		else if(key[KEY_C])
-			startType = "c";
+	while (startType == '') {
+		if (key[KEY_H])
+			startType = 'h';
+		else if (key[KEY_C])
+			startType = 'c';
 	}
 
-	if(startType == "h") {																																																																																																																																																																																																																																																																																																																																																												
+	if (startType == 'h') {																																																																																																																																																																																																																																																																																																																																																												
 		module[findByName("HabitatReactor")].setPowered(true);
 		module[findByName("HabitatReactor")].setTemp(81.0F);
 		module[findByName("HabitatReactor")].setWire(true);
 		rcon_lvl = 2000;
 	}
-	else if(startType == "c") {
-		//If cold starting requires anything special, put that here
-	}
-	else {
+	else if (startType != 'c') {
 		std::cout << "Invalid start type." << std::endl;
 		system("PAUSE");
 		exit(1);     
 	}
 	
+	//Why. Just why.
 	GetLocalTime(&t);
 	time1 = t.wMilliseconds + (t.wSecond * 1000);
+	//Please remove this god-forsaken windows-dependant terrible code.
+	
 	do {
 		if(keypressed()) {
-			if(key[KEY_TAB]) 
+			if (key[KEY_TAB]) 
 				in = '!';
-			else if(key[KEY_PGUP])
+			else if (key[KEY_PGUP])
 				in = '@';
-			else if(key[KEY_PGDN])
+			else if (key[KEY_PGDN])
 				in = '#';
-			else if(key[KEY_LEFT])
+			else if (key[KEY_LEFT])
 				in = '$';
-			else if(key[KEY_RIGHT])
+			else if (key[KEY_RIGHT])
 				in = '%';
-			else if(key[KEY_Q] || key[KEY_ESC])
+			else if (key[KEY_Q] || key[KEY_ESC])
 				exit(EXIT_SUCCESS);
-			else 
+			else
 				in = readkey();
-			
 			input += in;
+			
+			//This is the worst debouncer i have ever seen
 			clear_keybuf();
 			rest(10);
 		}
 		else 
 			in = ' ';
 		
+		//Update the software based on the input
 		bool change = update(in);
+		
+		//If something has changed, then draw the updated screens
 		if(change) 
 			draw();
 	} while(true);
