@@ -1,8 +1,9 @@
 #ifndef BUS_H_
 #define BUS_H_
 
-#include <allegro.h>
 #include "main.h"
+
+class Module;
 
 class Bus {
 	private:

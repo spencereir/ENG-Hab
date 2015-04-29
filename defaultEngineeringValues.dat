@@ -1,0 +1,34 @@
+Habitat Reactor
+HabitatReactor 0 0 0 0 0 10000 100 120 0 0
+Fuel Cell
+FuelCell 0 0 1 1 0 10000 100 120 0 0
+Battery
+Battery 0 0 2 1 0 10000 100 120 0 0
+Radiation Shield 1
+RadiationShield1 0 0 3 0 0 10000 100 120 0 0
+Radiation Shield 2
+RadiationShield1 0 0 4 0 0 10000 100 120 0 0
+Artificial Gravity
+ArtificialGravity 0 0 5 0 0 10000 100 120 0 0
+Reactor Containment 1
+ReactorContainment1 0 0 6 0 0 5000 100 120 0 0
+Radiation Shield 2
+ReactorContainment2 0 0 7 0 0 5000 100 120 0 0
+RCS Pressure
+RCSPressure 0 0 8 0 0 5000 100 120 0 0
+Engine Accelerator 1
+EngineAccelerator1 0 0 9 0 0 10000 100 120 0 0
+Ion Engine 1
+IonEngine1 0 0 10 0 0 10000 100 120 0 0
+Engine Accelerator 2
+EngineAccelerator2 0 0 11 0 0 10000 100 120 0 0
+Ion Engine 2
+IonEngine2 0 0 12 0 0 10000 100 120 0 0
+Engine Accelerator 3
+EngineAccelerator3 0 0 13 0 0 10000 100 120 0 0
+Ion Engine 3
+IonEngine3 0 0 14 0 0 10000 100 120 0 0
+Engine Accelerator 4
+EngineAccelerator4 0 0 15 0 0 10000 100 120 0 0
+Ion Engine 4
+IonEngine4 0 0 16 0 0 10000 100 120 0 0
